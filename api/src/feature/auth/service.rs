@@ -4,12 +4,11 @@ use crate::{
     feature::{
         auth::{
             cookie::{create_cleared_cookie, create_refresh_cookie},
+            dto::{AuthResponse, LoginCredentials, TokenResponse, UserResponse},
             jwt,
-            model::LoginCredentials,
             repository::AuthError,
-            types::{AuthResponse, TokenResponse, UserResponse},
         },
-        user::{model::CreateUser, repository::UserRepository},
+        user::{CreateUser, repository::UserRepository},
     },
     infrastructure::{config::Config, persistence::Database},
 };

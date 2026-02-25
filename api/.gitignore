@@ -2,6 +2,10 @@
 target/
 *.pdb
 
+# Uploads (user-generated files, not tracked in git)
+uploads/*
+!uploads/.gitkeep
+
 # Environment
 .env
 .env.local

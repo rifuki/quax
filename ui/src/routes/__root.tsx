@@ -3,7 +3,7 @@ import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 // Providers
-import { TanStackProvider, ThemeProvider, AuthProvider } from "@/providers";
+import { TanStackProvider, ThemeProvider } from "@/providers";
 
 // Components
 import { Toaster } from "@/components/ui/sonner";
@@ -17,10 +17,8 @@ function RootComponent() {
     <Fragment>
       <TanStackProvider>
         <ThemeProvider defaultTheme="system" enableSystem attribute="class">
-          <AuthProvider>
-            <Outlet />
-            <Toaster position="bottom-right" richColors />
-          </AuthProvider>
+          <Outlet />
+          <Toaster position="bottom-right" richColors />
         </ThemeProvider>
       </TanStackProvider>
       <TanStackRouterDevtools />

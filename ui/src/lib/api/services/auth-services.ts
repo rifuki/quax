@@ -54,23 +54,32 @@ export const authService = {
   },
 
   /**
-   * Refresh access token using httpOnly refresh cookie
-   * Returns new access token; caller must update Zustand store
+   * Refresh access token using httpOnly refresh cookie.
+   * Deduplicates concurrent calls — only one request in-flight at a time.
    */
-  refreshToken: async (): Promise<string> => {
-    const response = await apiClient.post<ApiSuccess<{ access_token: string }>>(
-      API_ENDPOINTS.AUTH.REFRESH,
-      {},
-      { withCredentials: true }
-    );
+  refreshToken: (() => {
+    let inflight: Promise<string> | null = null;
 
-    const data = response.data.data;
-    if (!data?.access_token) {
-      throw new Error("Token refresh failed");
-    }
-
-    return data.access_token;
-  },
+    return (): Promise<string> => {
+      if (!inflight) {
+        inflight = apiClient
+          .post<ApiSuccess<{ access_token: string }>>(
+            API_ENDPOINTS.AUTH.REFRESH,
+            {},
+            { withCredentials: true }
+          )
+          .then((response) => {
+            const data = response.data.data;
+            if (!data?.access_token) throw new Error("Token refresh failed");
+            return data.access_token;
+          })
+          .finally(() => {
+            inflight = null;
+          });
+      }
+      return inflight;
+    };
+  })(),
 
   /**
    * Logout user

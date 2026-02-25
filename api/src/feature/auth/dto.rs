@@ -1,6 +1,13 @@
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
+/// Login credentials
+#[derive(Debug, Deserialize)]
+pub struct LoginCredentials {
+    pub email: String,
+    pub password: String,
+}
+
 /// Register request
 #[derive(Debug, Clone, Deserialize, Validate)]
 pub struct RegisterRequest {
@@ -49,4 +56,11 @@ pub struct TokenResponse {
 pub struct AuthResponse {
     pub user: UserResponse,
     pub token: TokenResponse,
+}
+
+/// Request body for change password
+#[derive(Debug, Deserialize)]
+pub struct ChangePasswordRequest {
+    pub current_password: String,
+    pub new_password: String,
 }

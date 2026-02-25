@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::feature::admin::api_key_model::{ApiKey, UpdateApiKey};
+use super::{dto::UpdateApiKey, entity::ApiKey};
 
 /// API Key repository errors
 #[derive(Debug, thiserror::Error)]
@@ -159,7 +159,7 @@ impl ApiKeyRepository for ApiKeyRepositoryImpl {
         payload: &UpdateApiKey,
     ) -> Result<Option<ApiKey>, ApiKeyError> {
         let key = sqlx::query_as::<_, ApiKey>(
-            "UPDATE api_keys 
+            "UPDATE api_keys
              SET name = COALESCE($1, name),
                  scopes = COALESCE($2, scopes),
                  is_active = COALESCE($3, is_active),

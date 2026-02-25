@@ -1,5 +1,6 @@
 import { Outlet, useNavigate } from "@tanstack/react-router";
 import { createFileRoute } from "@tanstack/react-router";
+import { AuthProvider } from "@/providers";
 import { Bell, Menu } from "lucide-react";
 import { useState } from "react";
 
@@ -36,6 +37,14 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 function DashboardLayout() {
+  return (
+    <AuthProvider>
+      <DashboardContent />
+    </AuthProvider>
+  );
+}
+
+function DashboardContent() {
   const navigate = useNavigate();
   const isAuthenticated = useIsAuthenticated();
   const user = useAuthUser();

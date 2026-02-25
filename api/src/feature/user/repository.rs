@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
-use crate::feature::user::model::{CreateUser, UpdateUser, User};
+use crate::feature::user::{dto::{CreateUser, UpdateUser}, entity::User};
 
 /// User repository errors (data-layer, not auth-layer)
 #[derive(Debug, thiserror::Error)]
@@ -53,6 +53,12 @@ pub trait UserRepository: Send + Sync {
         id: Uuid,
         password_hash: &str,
     ) -> Result<bool, sqlx::Error>;
+    async fn update_avatar_url(
+        &self,
+        pool: &PgPool,
+        id: Uuid,
+        avatar_url: &str,
+    ) -> Result<(), sqlx::Error>;
 }
 
 #[derive(Debug, Clone, Default)]
@@ -113,7 +119,7 @@ impl UserRepository for UserRepositoryImpl {
         let row = sqlx::query(
             "INSERT INTO users (id, email, username, name, password_hash, created_at, updated_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7)
-             RETURNING id, email, username, name, password_hash, role, created_at, updated_at",
+             RETURNING id, email, username, name, password_hash, role, avatar_url, created_at, updated_at",
         )
         .bind(user.id)
         .bind(&user.email)
@@ -132,6 +138,7 @@ impl UserRepository for UserRepositoryImpl {
             name: row.get("name"),
             password_hash: row.get("password_hash"),
             role: row.get("role"),
+            avatar_url: row.get("avatar_url"),
             created_at: row.get("created_at"),
             updated_at: row.get("updated_at"),
         })
@@ -139,7 +146,7 @@ impl UserRepository for UserRepositoryImpl {
 
     async fn find_by_id(&self, pool: &PgPool, id: Uuid) -> Result<Option<User>, sqlx::Error> {
         let row = sqlx::query(
-            "SELECT id, email, username, name, password_hash, role, created_at, updated_at FROM users WHERE id = $1"
+            "SELECT id, email, username, name, password_hash, role, avatar_url, created_at, updated_at FROM users WHERE id = $1"
         )
         .bind(id)
         .fetch_optional(pool)
@@ -152,6 +159,7 @@ impl UserRepository for UserRepositoryImpl {
             name: r.get("name"),
             password_hash: r.get("password_hash"),
             role: r.get("role"),
+            avatar_url: r.get("avatar_url"),
             created_at: r.get("created_at"),
             updated_at: r.get("updated_at"),
         }))
@@ -159,7 +167,7 @@ impl UserRepository for UserRepositoryImpl {
 
     async fn find_by_email(&self, pool: &PgPool, email: &str) -> Result<Option<User>, sqlx::Error> {
         let row = sqlx::query(
-            "SELECT id, email, username, name, password_hash, role, created_at, updated_at FROM users WHERE email = $1"
+            "SELECT id, email, username, name, password_hash, role, avatar_url, created_at, updated_at FROM users WHERE email = $1"
         )
         .bind(email)
         .fetch_optional(pool)
@@ -172,6 +180,7 @@ impl UserRepository for UserRepositoryImpl {
             name: r.get("name"),
             password_hash: r.get("password_hash"),
             role: r.get("role"),
+            avatar_url: r.get("avatar_url"),
             created_at: r.get("created_at"),
             updated_at: r.get("updated_at"),
         }))
@@ -179,7 +188,7 @@ impl UserRepository for UserRepositoryImpl {
 
     async fn find_by_username(&self, pool: &PgPool, username: &str) -> Result<Option<User>, sqlx::Error> {
         let row = sqlx::query(
-            "SELECT id, email, username, name, password_hash, role, created_at, updated_at FROM users WHERE username = $1"
+            "SELECT id, email, username, name, password_hash, role, avatar_url, created_at, updated_at FROM users WHERE username = $1"
         )
         .bind(username)
         .fetch_optional(pool)
@@ -192,6 +201,7 @@ impl UserRepository for UserRepositoryImpl {
             name: r.get("name"),
             password_hash: r.get("password_hash"),
             role: r.get("role"),
+            avatar_url: r.get("avatar_url"),
             created_at: r.get("created_at"),
             updated_at: r.get("updated_at"),
         }))
@@ -199,7 +209,7 @@ impl UserRepository for UserRepositoryImpl {
 
     async fn list(&self, pool: &PgPool, limit: i64, offset: i64) -> Result<Vec<User>, sqlx::Error> {
         let rows = sqlx::query(
-            "SELECT id, email, username, name, password_hash, role, created_at, updated_at
+            "SELECT id, email, username, name, password_hash, role, avatar_url, created_at, updated_at
              FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2",
         )
         .bind(limit)
@@ -216,6 +226,7 @@ impl UserRepository for UserRepositoryImpl {
                 name: r.get("name"),
                 password_hash: r.get("password_hash"),
                 role: r.get("role"),
+                avatar_url: r.get("avatar_url"),
                 created_at: r.get("created_at"),
                 updated_at: r.get("updated_at"),
             })
@@ -261,13 +272,13 @@ impl UserRepository for UserRepositoryImpl {
         let updated_at = chrono::Utc::now();
 
         let row = sqlx::query(
-            "UPDATE users 
-             SET name = COALESCE($1, name), 
+            "UPDATE users
+             SET name = COALESCE($1, name),
                  username = COALESCE($2, username),
                  email = COALESCE($3, email),
                  updated_at = $4
              WHERE id = $5
-             RETURNING id, email, username, name, password_hash, role, created_at, updated_at",
+             RETURNING id, email, username, name, password_hash, role, avatar_url, created_at, updated_at",
         )
         .bind(&payload.name)
         .bind(&payload.username)
@@ -284,6 +295,7 @@ impl UserRepository for UserRepositoryImpl {
             name: r.get("name"),
             password_hash: r.get("password_hash"),
             role: r.get("role"),
+            avatar_url: r.get("avatar_url"),
             created_at: r.get("created_at"),
             updated_at: r.get("updated_at"),
         }))
@@ -325,11 +337,11 @@ impl UserRepository for UserRepositoryImpl {
         let updated_at = chrono::Utc::now();
 
         let row = sqlx::query(
-            "UPDATE users 
+            "UPDATE users
              SET role = $1,
                  updated_at = $2
              WHERE id = $3
-             RETURNING id, email, username, name, password_hash, role, created_at, updated_at",
+             RETURNING id, email, username, name, password_hash, role, avatar_url, created_at, updated_at",
         )
         .bind(role)
         .bind(updated_at)
@@ -344,6 +356,7 @@ impl UserRepository for UserRepositoryImpl {
             name: r.get("name"),
             password_hash: r.get("password_hash"),
             role: r.get("role"),
+            avatar_url: r.get("avatar_url"),
             created_at: r.get("created_at"),
             updated_at: r.get("updated_at"),
         }))
@@ -370,5 +383,25 @@ impl UserRepository for UserRepositoryImpl {
         .await?;
 
         Ok(result.rows_affected() > 0)
+    }
+
+    async fn update_avatar_url(
+        &self,
+        pool: &PgPool,
+        id: Uuid,
+        avatar_url: &str,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            "UPDATE users
+             SET avatar_url = $1,
+                 updated_at = NOW()
+             WHERE id = $2",
+        )
+        .bind(avatar_url)
+        .bind(id)
+        .execute(pool)
+        .await?;
+
+        Ok(())
     }
 }

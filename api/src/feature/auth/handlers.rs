@@ -6,11 +6,10 @@ use crate::{
     feature::auth::{
         claims::AuthUser,
         cookie::REFRESH_TOKEN_COOKIE,
-        model::LoginCredentials,
+        dto::{AuthResponse, ChangePasswordRequest, LoginCredentials, RegisterRequest, TokenResponse, UserResponse},
         repository::AuthError,
-        types::{AuthResponse, RegisterRequest, TokenResponse, UserResponse},
     },
-    feature::user::model::CreateUser,
+    feature::user::CreateUser,
     infrastructure::web::response::{
         ApiError, ApiResult, ApiSuccess,
         codes::{auth as auth_codes, validation as val_codes},
@@ -172,13 +171,6 @@ pub async fn me(
     Ok(ApiSuccess::default()
         .with_data(response)
         .with_message("User info retrieved"))
-}
-
-/// Request body for change password
-#[derive(Debug, serde::Deserialize)]
-pub struct ChangePasswordRequest {
-    pub current_password: String,
-    pub new_password: String,
 }
 
 /// POST /api/v1/auth/change-password

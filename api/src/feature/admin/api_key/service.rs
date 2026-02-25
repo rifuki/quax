@@ -1,13 +1,12 @@
 use chrono::Utc;
 use uuid::Uuid;
 
-use crate::{
-    feature::admin::{
-        api_key_model::{ApiKey, ApiKeyResponse, ApiKeyWithPlain, UpdateApiKey},
-        api_key_repository::{ApiKeyError, ApiKeyRepository},
-    },
-    infrastructure::persistence::Database,
+use super::{
+    dto::{ApiKeyResponse, ApiKeyWithPlain, UpdateApiKey},
+    entity::ApiKey,
+    repository::{ApiKeyError, ApiKeyRepository},
 };
+use crate::infrastructure::persistence::Database;
 use std::sync::Arc;
 
 /// API Key Service

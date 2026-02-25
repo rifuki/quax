@@ -1,22 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
 use uuid::Uuid;
 
-/// API Key entity
-#[derive(Debug, Clone, FromRow, Serialize)]
-pub struct ApiKey {
-    pub id: Uuid,
-    pub name: String,
-    pub key_hash: String,
-    pub scopes: Vec<String>,
-    pub created_by: Option<Uuid>,
-    pub last_used_at: Option<DateTime<Utc>>,
-    pub expires_at: Option<DateTime<Utc>>,
-    pub is_active: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
+use super::entity::ApiKey;
 
 /// DTO for creating API key
 #[derive(Debug, Deserialize)]
@@ -71,4 +57,20 @@ pub struct ApiKeyWithPlain {
     pub scopes: Vec<String>,
     pub expires_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
+}
+
+/// Query params for listing API keys
+#[derive(Debug, Deserialize)]
+pub struct ListQuery {
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+/// Request body for creating API key
+#[derive(Debug, Deserialize)]
+pub struct CreateApiKeyRequest {
+    pub name: String,
+    pub scopes: Vec<String>,
+    pub created_by: Option<Uuid>,
+    pub expires_days: Option<i64>,
 }

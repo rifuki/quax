@@ -1,8 +1,9 @@
 use axum::{Extension, Router, middleware::from_fn};
 use std::time::Duration;
+use tower_http::services::ServeDir;
 
 use crate::{
-    feature::{admin, auth, dev, health, user},
+    feature::{admin, auth, health, user},
     infrastructure::web::middleware::{RateLimiter, rate_limit_middleware},
     state::AppState,
 };
@@ -24,22 +25,24 @@ pub fn app_routes(state: AppState) -> Router {
         }
     });
 
-    let auth_routes = auth::auth_routes()
+    // login & register: strict rate limit (anti brute-force)
+    let auth_sensitive = auth::auth_sensitive_routes()
         .layer(from_fn(rate_limit_middleware))
         .layer(Extension(auth_limiter));
 
     let api_routes = Router::new()
-        .nest("/auth", auth_routes)
+        .nest("/auth", auth::auth_routes().merge(auth_sensitive))
         .nest("/users", user::user_routes())
         .nest("/admin", admin::admin_routes())
         .nest("/admin/api-keys", admin::api_key_routes())
-        .nest("/dev", dev::dev_routes())
+
         .layer(from_fn(rate_limit_middleware))
         .layer(Extension(global_limiter));
 
     Router::new()
         .nest("/health", health::health_routes())
         .nest("/api/v1", api_routes)
+        .nest_service("/media", ServeDir::new("uploads"))
         .fallback(handle_404)
         .with_state(state)
 }

@@ -92,12 +92,13 @@ function ProfileContent({ user }: { user: NonNullable<ReturnType<typeof useUser>
   const handleAvatarUpload = async (file: File) => {
     const formData = new FormData();
     formData.append('avatar', file);
-    
-    const response = await apiClient.post('/user/avatar', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+
+    const response = await apiClient.post('/users/avatar', formData, {
+      headers: { 'Content-Type': undefined }, // let browser set multipart boundary
     });
-    
-    setAvatarUrl(response.data.avatar_url);
+
+    const avatarUrl = response.data?.data?.avatar_url;
+    if (avatarUrl) setAvatarUrl(avatarUrl);
   };
 
   const handleProfileSubmit = async (e: React.FormEvent) => {

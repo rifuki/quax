@@ -3,12 +3,12 @@
 
 use crate::{
     feature::{
-        admin::{
-            api_key_repository::ApiKeyRepositoryImpl,
-            api_key_service::ApiKeyService,
+        admin::api_key::{
+            repository::ApiKeyRepositoryImpl,
+            service::ApiKeyService,
         },
         auth::service::AuthService,
-        user::model::CreateUser,
+        user::CreateUser,
     },
     infrastructure::{config::Config, persistence::Database},
 };

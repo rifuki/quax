@@ -4,7 +4,7 @@ use tracing_subscriber::EnvFilter;
 use uuid::Uuid;
 
 use crate::{
-    feature::{auth::AuthUser, user::model::User},
+    feature::{auth::AuthUser, user::User},
     infrastructure::web::response::{ApiError, ApiResult, ApiSuccess, codes::generic},
     state::AppState,
 };

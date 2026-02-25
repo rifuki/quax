@@ -1,8 +1,10 @@
 mod handler;
-pub mod model;
+pub mod dto;
+pub mod entity;
 pub mod repository;
 mod routes;
 
-pub use model::{CreateUser, UpdateUser, User};
+pub use dto::{CreateUser, UpdateUser};
+pub use entity::User;
 pub use repository::{UserRepository, UserRepositoryError, UserRepositoryImpl};
 pub use routes::user_routes;

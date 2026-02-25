@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sqlx::FromRow;
 use uuid::Uuid;
 
@@ -15,6 +15,7 @@ pub struct User {
     #[serde(skip)]
     pub password_hash: String,
     pub role: String,
+    pub avatar_url: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -29,6 +30,7 @@ impl User {
             name: name.to_string(),
             password_hash: password_hash.to_string(),
             role: "user".to_string(),
+            avatar_url: None,
             created_at: now,
             updated_at: now,
         }
@@ -48,21 +50,4 @@ impl User {
     pub fn role(&self) -> Role {
         Role::try_from(self.role.as_str()).unwrap_or(Role::User)
     }
-}
-
-/// DTO for creating a user (used by auth register)
-#[derive(Debug, Deserialize)]
-pub struct CreateUser {
-    pub email: String,
-    pub username: Option<String>, // Optional during registration
-    pub name: String,
-    pub password: String,
-}
-
-/// DTO for updating a user profile
-#[derive(Debug, Deserialize)]
-pub struct UpdateUser {
-    pub name: Option<String>,
-    pub username: Option<String>,
-    pub email: Option<String>,
 }

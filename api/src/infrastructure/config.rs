@@ -127,12 +127,45 @@ impl CookieConfig {
 }
 
 #[derive(Debug, Clone)]
+pub struct UploadConfig {
+    /// Directory where uploaded files are stored (env: UPLOAD_DIR, default: "./uploads").
+    pub upload_dir: String,
+    /// Base URL used to build public URLs for uploaded files
+    /// (env: UPLOAD_BASE_URL, default: "http://localhost:8080/media").
+    pub base_url: String,
+    /// Maximum allowed avatar file size in bytes
+    /// (env: MAX_AVATAR_SIZE, default: 2 MiB).
+    pub max_avatar_size: usize,
+}
+
+impl UploadConfig {
+    fn from_env() -> Self {
+        let upload_dir = env::var("UPLOAD_DIR").unwrap_or_else(|_| "./uploads".to_string());
+
+        let base_url = env::var("UPLOAD_BASE_URL")
+            .unwrap_or_else(|_| "http://localhost:8080/media".to_string());
+
+        let max_avatar_size = env::var("MAX_AVATAR_SIZE")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(2_097_152); // 2 MiB
+
+        Self {
+            upload_dir,
+            base_url,
+            max_avatar_size,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Config {
     pub rust_env: String,
     pub is_production: bool,
     pub server: ServerConfig,
     pub database: DatabaseConfig,
     pub cookie: CookieConfig,
+    pub upload: UploadConfig,
 }
 
 impl Config {
@@ -150,6 +183,7 @@ impl Config {
             server: ServerConfig::from_env(),
             database: DatabaseConfig::from_env()?,
             cookie: CookieConfig::from_env(is_production),
+            upload: UploadConfig::from_env(),
         })
     }
 }
