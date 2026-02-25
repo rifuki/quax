@@ -1,0 +1,12 @@
+FROM rust:alpine
+
+RUN apk add --no-cache musl-dev openssl-dev openssl-libs-static
+
+RUN cargo install sqlx-cli --no-default-features --features native-tls,postgres
+
+WORKDIR /migrations
+
+COPY migrate.sh /migrate.sh
+RUN chmod +x /migrate.sh
+
+ENTRYPOINT ["/migrate.sh"]

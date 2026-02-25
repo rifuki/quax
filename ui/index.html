@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en" suppressHydrationWarning>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>quax - Modern Full-Stack Template</title>
+    <meta
+      name="description"
+      content="Production-ready backend template with Rust + Axum + PostgreSQL. Secure, fast, and scalable."
+    />
+    <script>
+      // Prevent flash of wrong theme
+      (function () {
+        const theme = localStorage.getItem("theme") || "system";
+        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+          .matches
+          ? "dark"
+          : "light";
+        const resolvedTheme = theme === "system" ? systemTheme : theme;
+        if (resolvedTheme === "dark") {
+          document.documentElement.classList.add("dark");
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
