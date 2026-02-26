@@ -97,7 +97,7 @@ const AVAILABLE_SCOPES = [
   { value: "read:users", label: "Read Users" },
 ];
 
-export const Route = createFileRoute("/dashboard/admin/api-keys")({
+export const Route = createFileRoute("/app/admin/api-keys")({
   component: ApiKeysManagementPage,
 });
 
@@ -179,9 +179,9 @@ function ApiKeysManagementPage() {
       cell: ({ row }) => {
         const isActive = row.getValue("is_active") as boolean;
         return (
-          <Badge 
+          <Badge
             variant={isActive ? "default" : "secondary"}
-            className={isActive ? "bg-green-600" : ""}
+            className={isActive ? "bg-miku-primary text-white" : ""}
           >
             {isActive ? "Active" : "Revoked"}
           </Badge>
@@ -405,7 +405,7 @@ function ApiKeysManagementPage() {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" asChild>
-              <Link to="/dashboard/admin">← Back to Admin</Link>
+              <Link to="/app/admin">← Back to Admin</Link>
             </Button>
             <Button onClick={() => setCreateDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
@@ -483,9 +483,9 @@ function ApiKeysManagementPage() {
                               {header.isPlaceholder
                                 ? null
                                 : flexRender(
-                                    header.column.columnDef.header,
-                                    header.getContext()
-                                  )}
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
                             </TableHead>
                           ))}
                         </TableRow>
@@ -737,7 +737,7 @@ function CopyButton({ text }: { text: string }) {
 
   return (
     <Button variant="outline" size="icon" onClick={handleCopy}>
-      {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+      {copied ? <Check className="h-4 w-4 text-miku-primary" /> : <Copy className="h-4 w-4" />}
     </Button>
   );
 }

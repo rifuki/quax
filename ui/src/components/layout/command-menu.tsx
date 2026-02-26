@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard,
-  User,
   Settings,
   LogOut,
   Search,
@@ -59,25 +58,25 @@ export function CommandMenu({ open, setOpen }: CommandMenuProps) {
 
         <CommandGroup heading="Navigation">
           <CommandItem
-            onSelect={() => runCommand(() => navigate({ to: "/dashboard" }))}
+            onSelect={() => runCommand(() => navigate({ to: "/app" }))}
           >
             <LayoutDashboard className="mr-2 h-4 w-4" />
-            Dashboard
+            App Home
             <CommandShortcut>⌘D</CommandShortcut>
           </CommandItem>
           <CommandItem
             onSelect={() =>
-              runCommand(() => navigate({ to: "/dashboard/profile" }))
+              runCommand(() => navigate({ to: "/app/settings/profile" }))
             }
           >
-            <User className="mr-2 h-4 w-4" />
-            Profile
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
             <CommandShortcut>⌘P</CommandShortcut>
           </CommandItem>
           {isAdmin && (
             <CommandItem
               onSelect={() =>
-                runCommand(() => navigate({ to: "/dashboard/admin" }))
+                runCommand(() => navigate({ to: "/app/admin" }))
               }
             >
               <Settings className="mr-2 h-4 w-4" />

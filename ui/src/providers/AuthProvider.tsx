@@ -22,18 +22,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log("[AuthProvider] Starting auth check...");
 
       try {
-        // 1. Coba refresh token
+        // 1. Attempt token refresh
         console.log("[AuthProvider] Calling refreshToken...");
         const accessToken = await authService.refreshToken();
 
         if (cancelled) return;
         console.log("[AuthProvider] refreshToken success:", accessToken.substring(0, 20) + "...");
 
-        // 2. Simpan token ke Zustand
+        // 2. Save token to Zustand
         updateToken(accessToken);
         console.log("[AuthProvider] Token saved to Zustand");
 
-        // 3. Dapetin user info
+        // 3. Fetch user info
         console.log("[AuthProvider] Calling getMe...");
         const user = await authService.getMe();
 
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-miku-primary" />
           <p className="text-sm text-muted-foreground">Authenticating...</p>
         </div>
       </div>

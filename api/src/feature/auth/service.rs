@@ -51,6 +51,7 @@ impl AuthService {
                 email: user.email.clone(),
                 username: user.username.clone(),
                 name: user.name.clone(),
+                avatar_url: user.avatar_url.clone(),
                 role: user_role,
             },
             token: TokenResponse {
@@ -94,6 +95,7 @@ impl AuthService {
                 email: user.email.clone(),
                 username: user.username.clone(),
                 name: user.name.clone(),
+                avatar_url: user.avatar_url.clone(),
                 role: user_role,
             },
             token: TokenResponse {

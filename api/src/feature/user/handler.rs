@@ -32,6 +32,7 @@ pub async fn get_me(
         email: user.email.clone(),
         username: user.username.clone(),
         name: user.name.clone(),
+        avatar_url: user.avatar_url.clone(),
         role: user_role,
     }))
 }
@@ -74,6 +75,7 @@ pub async fn update_me(
             email: user.email.clone(),
             username: user.username.clone(),
             name: user.name.clone(),
+            avatar_url: user.avatar_url.clone(),
             role: user_role,
         })
         .with_message("Profile updated"))
@@ -190,4 +192,48 @@ pub async fn upload_avatar(
     Ok(ApiSuccess::default()
         .with_data(serde_json::json!({ "avatar_url": avatar_url }))
         .with_message("Avatar uploaded successfully"))
+}
+
+/// DELETE /api/v1/users/avatar — remove avatar
+pub async fn delete_avatar(
+    State(state): State<AppState>,
+    auth_user: axum::Extension<AuthUser>,
+) -> ApiResult<serde_json::Value> {
+    let user_id = auth_user.user_id;
+
+    // --- 1. Fetch user to get old avatar ---
+    let user = state
+        .user_repo
+        .find_by_id(state.db.pool(), user_id)
+        .await
+        .map_err(|e| ApiError::default().log_only(e))?
+        .ok_or_else(|| {
+            ApiError::default()
+                .with_code(axum::http::StatusCode::NOT_FOUND)
+                .with_message("User not found")
+        })?;
+
+    // --- 2. Delete from storage if exists ---
+    if let Some(old_url) = user.avatar_url {
+        let base = state.config.upload.base_url.trim_end_matches('/');
+        if let Some(key) = old_url.strip_prefix(base).map(|s| s.trim_start_matches('/')) {
+            let _ = state.storage.delete(key).await;
+        }
+    }
+
+    // --- 3. Update DB: clear avatar_url ---
+    // Note: passing empty string or similar if DB requires it, but ideally we'd pass Option.
+    // Assuming `update_avatar_url` can accept an empty string or handles NULL internally if provided.
+    // To properly set to NULL, we might need a specific repo method, but let's pass "" for now 
+    // or modify update_avatar_url behavior if needed.
+    // Actually, update_avatar_url expects &str. Let's send an empty string for cleared avatar.
+    state
+        .user_repo
+        .update_avatar_url(state.db.pool(), user_id, "")
+        .await
+        .map_err(|e| ApiError::default().log_only(e))?;
+
+    Ok(ApiSuccess::default()
+        .with_data(serde_json::json!({ "avatar_url": null }))
+        .with_message("Avatar removed successfully"))
 }

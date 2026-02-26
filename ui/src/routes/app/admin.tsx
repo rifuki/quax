@@ -1,6 +1,5 @@
 import { Outlet, useNavigate } from "@tanstack/react-router";
 import { createFileRoute } from "@tanstack/react-router";
-import { AuthProvider } from "@/providers";
 import { Bell, Menu } from "lucide-react";
 import { useState } from "react";
 
@@ -13,8 +12,8 @@ import {
 import { AppSidebar } from "@/components/layout/app-sidebar-new";
 import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav";
 import { CommandMenu, CommandMenuTrigger } from "@/components/layout/command-menu";
-import { useIsAuthenticated, useAuthUser } from "@/features/auth";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { useAuthUser } from "@/features/auth";
+import { HeaderUserMenu } from "@/components/layout/header-user-menu";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,28 +31,25 @@ const notifications = [
   { id: 3, title: "System update", description: "Database backup completed", time: "3 hours ago", unread: false },
 ];
 
-export const Route = createFileRoute("/dashboard")({
+export const Route = createFileRoute("/app/admin")({
   component: DashboardLayout,
 });
 
 function DashboardLayout() {
-  return (
-    <AuthProvider>
-      <DashboardContent />
-    </AuthProvider>
-  );
+  return <DashboardContent />;
 }
 
 function DashboardContent() {
   const navigate = useNavigate();
-  const isAuthenticated = useIsAuthenticated();
   const user = useAuthUser();
   const [commandOpen, setCommandOpen] = useState(false);
   const unreadCount = notifications.filter((n) => n.unread).length;
 
-  // Redirect if not authenticated
-  if (!isAuthenticated && !user) {
-    navigate({ to: "/login" });
+  // Note: Authenticated guard is handled by app.tsx 
+
+  // Redirect standard users to their dashboard
+  if (user?.role !== "admin") {
+    navigate({ to: "/app" });
     return null;
   }
 
@@ -64,7 +60,7 @@ function DashboardContent() {
         {/* Top Header */}
         <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b bg-background px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-16">
           <div className="flex items-center gap-2">
-            <SidebarTrigger className="-ml-1">
+            <SidebarTrigger className="-ml-1 md:hidden">
               <Menu className="h-5 w-5" />
             </SidebarTrigger>
             <BreadcrumbNav />
@@ -81,7 +77,7 @@ function DashboardContent() {
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-5 w-5" />
                   {unreadCount > 0 && (
-                    <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-background" />
+                    <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-miku-accent ring-2 ring-background" />
                   )}
                 </Button>
               </DropdownMenuTrigger>
@@ -101,8 +97,8 @@ function DashboardContent() {
                   </div>
                 ) : (
                   notifications.map((notification) => (
-                    <DropdownMenuItem 
-                      key={notification.id} 
+                    <DropdownMenuItem
+                      key={notification.id}
                       className="flex flex-col items-start gap-1 p-3 cursor-pointer"
                     >
                       <div className="flex w-full items-center justify-between">
@@ -125,8 +121,8 @@ function DashboardContent() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Theme Toggle */}
-            <ThemeToggle />
+            {/* User Profile & Theme Menu */}
+            <HeaderUserMenu />
           </div>
         </header>
 

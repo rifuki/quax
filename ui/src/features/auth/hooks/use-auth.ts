@@ -1,6 +1,6 @@
 /**
  * Auth Hooks
- * Kombinasi Query + Mutations + Zustand
+ * Combination of Query + Mutations + Zustand
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10,7 +10,7 @@ import { authService } from "@/lib/api";
 import { useAuthActions } from "@/stores/use-auth-store";
 
 /**
- * Query Keys untuk Auth
+ * Query Keys for Auth
  */
 export const authKeys = {
   all: ["auth"] as const,
@@ -20,14 +20,18 @@ export const authKeys = {
 
 // ==================== QUERIES ====================
 
+import { useIsAuthenticated } from "@/stores/use-auth-store";
+
 /**
  * Hook to fetch current user
  */
 export function useMe(options?: { enabled?: boolean }) {
+  const isAuth = useIsAuthenticated();
+
   return useQuery({
     queryKey: authKeys.me(),
     queryFn: authService.getMe,
-    enabled: options?.enabled ?? true,
+    enabled: isAuth && (options?.enabled ?? true),
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });

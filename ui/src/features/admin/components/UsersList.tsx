@@ -40,17 +40,16 @@ export function UsersList() {
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
                   <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      user.role === "admin"
-                        ? "bg-red-500/10 text-red-600 border border-red-500/20"
-                        : "bg-blue-500/10 text-blue-600 border border-blue-500/20"
-                    }`}
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.role === "admin"
+                        ? "bg-miku-secondary/10 text-miku-secondary-dark border border-miku-secondary/20"
+                        : "bg-miku-primary/10 text-miku-primary-dark border border-miku-primary/20"
+                      }`}
                   >
                     {user.role}
                   </span>
                 </TableCell>
                 <TableCell>
-                  {user.created_at 
+                  {user.created_at
                     ? new Date(user.created_at).toLocaleDateString()
                     : "N/A"}
                 </TableCell>

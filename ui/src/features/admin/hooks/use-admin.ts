@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminService } from "@/lib/api";
 
 /**
- * Query Keys untuk Admin
+ * Query Keys for Admin
  */
 export const adminKeys = {
   all: ["admin"] as const,
@@ -27,7 +27,7 @@ export function useUsersList(options?: { enabled?: boolean }) {
   });
 }
 
-// Alias untuk backward compatibility
+// Alias for backward compatibility
 export { useUsersList as useUsers };
 
 export function useDashboardStats() {
@@ -40,7 +40,7 @@ export function useDashboardStats() {
 
 export function useUpdateUserRole() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: "admin" | "user" }) =>
       adminService.updateUserRole(userId, role),
@@ -61,7 +61,7 @@ export function useApiKeys() {
 
 export function useCreateApiKey() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({
       name,
@@ -80,7 +80,7 @@ export function useCreateApiKey() {
 
 export function useRevokeApiKey() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (id: string) => adminService.revokeApiKey(id),
     onSuccess: () => {
@@ -91,7 +91,7 @@ export function useRevokeApiKey() {
 
 export function useDeleteApiKey() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (id: string) => adminService.deleteApiKey(id),
     onSuccess: () => {

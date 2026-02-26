@@ -9,29 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as RegisterRouteImport } from './routes/register'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
-import { Route as DashboardProfileRouteImport } from './routes/dashboard/profile'
-import { Route as DashboardAdminRouteImport } from './routes/dashboard/admin'
-import { Route as DashboardAdminUsersRouteImport } from './routes/dashboard/admin/users'
-import { Route as DashboardAdminApiKeysRouteImport } from './routes/dashboard/admin/api-keys'
+import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AppSettingsRouteImport } from './routes/app/settings'
+import { Route as AppRegisterRouteImport } from './routes/app/register'
+import { Route as AppLoginRouteImport } from './routes/app/login'
+import { Route as AppAdminRouteImport } from './routes/app/admin'
+import { Route as AppSettingsIndexRouteImport } from './routes/app/settings/index'
+import { Route as AppAdminIndexRouteImport } from './routes/app/admin/index'
+import { Route as AppSettingsSessionsRouteImport } from './routes/app/settings/sessions'
+import { Route as AppSettingsSecurityRouteImport } from './routes/app/settings/security'
+import { Route as AppSettingsProfileRouteImport } from './routes/app/settings/profile'
+import { Route as AppAdminUsersRouteImport } from './routes/app/admin/users'
+import { Route as AppAdminApiKeysRouteImport } from './routes/app/admin/api-keys'
 
-const RegisterRoute = RegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -39,128 +34,173 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardIndexRoute = DashboardIndexRouteImport.update({
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => DashboardRoute,
+  getParentRoute: () => AppRoute,
 } as any)
-const DashboardProfileRoute = DashboardProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => DashboardRoute,
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
 } as any)
-const DashboardAdminRoute = DashboardAdminRouteImport.update({
+const AppRegisterRoute = AppRegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLoginRoute = AppLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminRoute = AppAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
-  getParentRoute: () => DashboardRoute,
+  getParentRoute: () => AppRoute,
 } as any)
-const DashboardAdminUsersRoute = DashboardAdminUsersRouteImport.update({
+const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppAdminRoute,
+} as any)
+const AppSettingsSessionsRoute = AppSettingsSessionsRouteImport.update({
+  id: '/sessions',
+  path: '/sessions',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsSecurityRoute = AppSettingsSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsProfileRoute = AppSettingsProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
-  getParentRoute: () => DashboardAdminRoute,
+  getParentRoute: () => AppAdminRoute,
 } as any)
-const DashboardAdminApiKeysRoute = DashboardAdminApiKeysRouteImport.update({
+const AppAdminApiKeysRoute = AppAdminApiKeysRouteImport.update({
   id: '/api-keys',
   path: '/api-keys',
-  getParentRoute: () => DashboardAdminRoute,
+  getParentRoute: () => AppAdminRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteWithChildren
-  '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
-  '/dashboard/admin': typeof DashboardAdminRouteWithChildren
-  '/dashboard/profile': typeof DashboardProfileRoute
-  '/dashboard/': typeof DashboardIndexRoute
-  '/dashboard/admin/api-keys': typeof DashboardAdminApiKeysRoute
-  '/dashboard/admin/users': typeof DashboardAdminUsersRoute
+  '/app': typeof AppRouteWithChildren
+  '/app/admin': typeof AppAdminRouteWithChildren
+  '/app/login': typeof AppLoginRoute
+  '/app/register': typeof AppRegisterRoute
+  '/app/settings': typeof AppSettingsRouteWithChildren
+  '/app/': typeof AppIndexRoute
+  '/app/admin/api-keys': typeof AppAdminApiKeysRoute
+  '/app/admin/users': typeof AppAdminUsersRoute
+  '/app/settings/profile': typeof AppSettingsProfileRoute
+  '/app/settings/security': typeof AppSettingsSecurityRoute
+  '/app/settings/sessions': typeof AppSettingsSessionsRoute
+  '/app/admin/': typeof AppAdminIndexRoute
+  '/app/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
-  '/dashboard/admin': typeof DashboardAdminRouteWithChildren
-  '/dashboard/profile': typeof DashboardProfileRoute
-  '/dashboard': typeof DashboardIndexRoute
-  '/dashboard/admin/api-keys': typeof DashboardAdminApiKeysRoute
-  '/dashboard/admin/users': typeof DashboardAdminUsersRoute
+  '/app/login': typeof AppLoginRoute
+  '/app/register': typeof AppRegisterRoute
+  '/app': typeof AppIndexRoute
+  '/app/admin/api-keys': typeof AppAdminApiKeysRoute
+  '/app/admin/users': typeof AppAdminUsersRoute
+  '/app/settings/profile': typeof AppSettingsProfileRoute
+  '/app/settings/security': typeof AppSettingsSecurityRoute
+  '/app/settings/sessions': typeof AppSettingsSessionsRoute
+  '/app/admin': typeof AppAdminIndexRoute
+  '/app/settings': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteWithChildren
-  '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
-  '/dashboard/admin': typeof DashboardAdminRouteWithChildren
-  '/dashboard/profile': typeof DashboardProfileRoute
-  '/dashboard/': typeof DashboardIndexRoute
-  '/dashboard/admin/api-keys': typeof DashboardAdminApiKeysRoute
-  '/dashboard/admin/users': typeof DashboardAdminUsersRoute
+  '/app': typeof AppRouteWithChildren
+  '/app/admin': typeof AppAdminRouteWithChildren
+  '/app/login': typeof AppLoginRoute
+  '/app/register': typeof AppRegisterRoute
+  '/app/settings': typeof AppSettingsRouteWithChildren
+  '/app/': typeof AppIndexRoute
+  '/app/admin/api-keys': typeof AppAdminApiKeysRoute
+  '/app/admin/users': typeof AppAdminUsersRoute
+  '/app/settings/profile': typeof AppSettingsProfileRoute
+  '/app/settings/security': typeof AppSettingsSecurityRoute
+  '/app/settings/sessions': typeof AppSettingsSessionsRoute
+  '/app/admin/': typeof AppAdminIndexRoute
+  '/app/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/dashboard'
-    | '/login'
-    | '/register'
-    | '/dashboard/admin'
-    | '/dashboard/profile'
-    | '/dashboard/'
-    | '/dashboard/admin/api-keys'
-    | '/dashboard/admin/users'
+    | '/app'
+    | '/app/admin'
+    | '/app/login'
+    | '/app/register'
+    | '/app/settings'
+    | '/app/'
+    | '/app/admin/api-keys'
+    | '/app/admin/users'
+    | '/app/settings/profile'
+    | '/app/settings/security'
+    | '/app/settings/sessions'
+    | '/app/admin/'
+    | '/app/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/login'
-    | '/register'
-    | '/dashboard/admin'
-    | '/dashboard/profile'
-    | '/dashboard'
-    | '/dashboard/admin/api-keys'
-    | '/dashboard/admin/users'
+    | '/app/login'
+    | '/app/register'
+    | '/app'
+    | '/app/admin/api-keys'
+    | '/app/admin/users'
+    | '/app/settings/profile'
+    | '/app/settings/security'
+    | '/app/settings/sessions'
+    | '/app/admin'
+    | '/app/settings'
   id:
     | '__root__'
     | '/'
-    | '/dashboard'
-    | '/login'
-    | '/register'
-    | '/dashboard/admin'
-    | '/dashboard/profile'
-    | '/dashboard/'
-    | '/dashboard/admin/api-keys'
-    | '/dashboard/admin/users'
+    | '/app'
+    | '/app/admin'
+    | '/app/login'
+    | '/app/register'
+    | '/app/settings'
+    | '/app/'
+    | '/app/admin/api-keys'
+    | '/app/admin/users'
+    | '/app/settings/profile'
+    | '/app/settings/security'
+    | '/app/settings/sessions'
+    | '/app/admin/'
+    | '/app/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardRoute: typeof DashboardRouteWithChildren
-  LoginRoute: typeof LoginRoute
-  RegisterRoute: typeof RegisterRoute
+  AppRoute: typeof AppRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/register': {
-      id: '/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -170,79 +210,148 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard/': {
-      id: '/dashboard/'
+    '/app/': {
+      id: '/app/'
       path: '/'
-      fullPath: '/dashboard/'
-      preLoaderRoute: typeof DashboardIndexRouteImport
-      parentRoute: typeof DashboardRoute
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/dashboard/profile': {
-      id: '/dashboard/profile'
-      path: '/profile'
-      fullPath: '/dashboard/profile'
-      preLoaderRoute: typeof DashboardProfileRouteImport
-      parentRoute: typeof DashboardRoute
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/dashboard/admin': {
-      id: '/dashboard/admin'
+    '/app/register': {
+      id: '/app/register'
+      path: '/register'
+      fullPath: '/app/register'
+      preLoaderRoute: typeof AppRegisterRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/login': {
+      id: '/app/login'
+      path: '/login'
+      fullPath: '/app/login'
+      preLoaderRoute: typeof AppLoginRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin': {
+      id: '/app/admin'
       path: '/admin'
-      fullPath: '/dashboard/admin'
-      preLoaderRoute: typeof DashboardAdminRouteImport
-      parentRoute: typeof DashboardRoute
+      fullPath: '/app/admin'
+      preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/dashboard/admin/users': {
-      id: '/dashboard/admin/users'
+    '/app/settings/': {
+      id: '/app/settings/'
+      path: '/'
+      fullPath: '/app/settings/'
+      preLoaderRoute: typeof AppSettingsIndexRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/admin/': {
+      id: '/app/admin/'
+      path: '/'
+      fullPath: '/app/admin/'
+      preLoaderRoute: typeof AppAdminIndexRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
+    '/app/settings/sessions': {
+      id: '/app/settings/sessions'
+      path: '/sessions'
+      fullPath: '/app/settings/sessions'
+      preLoaderRoute: typeof AppSettingsSessionsRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/security': {
+      id: '/app/settings/security'
+      path: '/security'
+      fullPath: '/app/settings/security'
+      preLoaderRoute: typeof AppSettingsSecurityRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/profile': {
+      id: '/app/settings/profile'
+      path: '/profile'
+      fullPath: '/app/settings/profile'
+      preLoaderRoute: typeof AppSettingsProfileRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/admin/users': {
+      id: '/app/admin/users'
       path: '/users'
-      fullPath: '/dashboard/admin/users'
-      preLoaderRoute: typeof DashboardAdminUsersRouteImport
-      parentRoute: typeof DashboardAdminRoute
+      fullPath: '/app/admin/users'
+      preLoaderRoute: typeof AppAdminUsersRouteImport
+      parentRoute: typeof AppAdminRoute
     }
-    '/dashboard/admin/api-keys': {
-      id: '/dashboard/admin/api-keys'
+    '/app/admin/api-keys': {
+      id: '/app/admin/api-keys'
       path: '/api-keys'
-      fullPath: '/dashboard/admin/api-keys'
-      preLoaderRoute: typeof DashboardAdminApiKeysRouteImport
-      parentRoute: typeof DashboardAdminRoute
+      fullPath: '/app/admin/api-keys'
+      preLoaderRoute: typeof AppAdminApiKeysRouteImport
+      parentRoute: typeof AppAdminRoute
     }
   }
 }
 
-interface DashboardAdminRouteChildren {
-  DashboardAdminApiKeysRoute: typeof DashboardAdminApiKeysRoute
-  DashboardAdminUsersRoute: typeof DashboardAdminUsersRoute
+interface AppAdminRouteChildren {
+  AppAdminApiKeysRoute: typeof AppAdminApiKeysRoute
+  AppAdminUsersRoute: typeof AppAdminUsersRoute
+  AppAdminIndexRoute: typeof AppAdminIndexRoute
 }
 
-const DashboardAdminRouteChildren: DashboardAdminRouteChildren = {
-  DashboardAdminApiKeysRoute: DashboardAdminApiKeysRoute,
-  DashboardAdminUsersRoute: DashboardAdminUsersRoute,
+const AppAdminRouteChildren: AppAdminRouteChildren = {
+  AppAdminApiKeysRoute: AppAdminApiKeysRoute,
+  AppAdminUsersRoute: AppAdminUsersRoute,
+  AppAdminIndexRoute: AppAdminIndexRoute,
 }
 
-const DashboardAdminRouteWithChildren = DashboardAdminRoute._addFileChildren(
-  DashboardAdminRouteChildren,
+const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
+  AppAdminRouteChildren,
 )
 
-interface DashboardRouteChildren {
-  DashboardAdminRoute: typeof DashboardAdminRouteWithChildren
-  DashboardProfileRoute: typeof DashboardProfileRoute
-  DashboardIndexRoute: typeof DashboardIndexRoute
+interface AppSettingsRouteChildren {
+  AppSettingsProfileRoute: typeof AppSettingsProfileRoute
+  AppSettingsSecurityRoute: typeof AppSettingsSecurityRoute
+  AppSettingsSessionsRoute: typeof AppSettingsSessionsRoute
+  AppSettingsIndexRoute: typeof AppSettingsIndexRoute
 }
 
-const DashboardRouteChildren: DashboardRouteChildren = {
-  DashboardAdminRoute: DashboardAdminRouteWithChildren,
-  DashboardProfileRoute: DashboardProfileRoute,
-  DashboardIndexRoute: DashboardIndexRoute,
+const AppSettingsRouteChildren: AppSettingsRouteChildren = {
+  AppSettingsProfileRoute: AppSettingsProfileRoute,
+  AppSettingsSecurityRoute: AppSettingsSecurityRoute,
+  AppSettingsSessionsRoute: AppSettingsSessionsRoute,
+  AppSettingsIndexRoute: AppSettingsIndexRoute,
 }
 
-const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
-  DashboardRouteChildren,
+const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
+  AppSettingsRouteChildren,
 )
+
+interface AppRouteChildren {
+  AppAdminRoute: typeof AppAdminRouteWithChildren
+  AppLoginRoute: typeof AppLoginRoute
+  AppRegisterRoute: typeof AppRegisterRoute
+  AppSettingsRoute: typeof AppSettingsRouteWithChildren
+  AppIndexRoute: typeof AppIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAdminRoute: AppAdminRouteWithChildren,
+  AppLoginRoute: AppLoginRoute,
+  AppRegisterRoute: AppRegisterRoute,
+  AppSettingsRoute: AppSettingsRouteWithChildren,
+  AppIndexRoute: AppIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardRoute: DashboardRouteWithChildren,
-  LoginRoute: LoginRoute,
-  RegisterRoute: RegisterRoute,
+  AppRoute: AppRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -60,7 +60,7 @@ function getAccessToken(): string | null {
  */
 function handleLogout() {
   useAuthStore.getState().actions.logout();
-  window.location.href = "/login";
+  window.location.href = "/app/login";
 }
 
 // Response Interceptor: handles responses, token refresh, and error extraction

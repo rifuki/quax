@@ -1,22 +1,23 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  Upload, 
-  X, 
-  Image as ImageIcon, 
+import {
+  Upload,
+  Image as ImageIcon,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Pencil,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,15 +29,10 @@ interface ImageUploadModalProps {
   description?: string;
   maxSizeMB?: number;
   acceptedTypes?: string[];
+  isAvatar?: boolean;
 }
 
-type UploadState = 
-  | { status: 'idle' }
-  | { status: 'selecting' }
-  | { status: 'preview'; file: File; previewUrl: string }
-  | { status: 'uploading'; progress: number }
-  | { status: 'success' }
-  | { status: 'error'; message: string };
+type ModalStatus = 'idle' | 'selecting' | 'preview' | 'uploading' | 'success';
 
 export function ImageUploadModal({
   isOpen,
@@ -46,8 +42,14 @@ export function ImageUploadModal({
   description = "Select an image to upload. Maximum file size is 5MB.",
   maxSizeMB = 5,
   acceptedTypes = ['image/jpeg', 'image/png', 'image/webp'],
+  isAvatar = false,
 }: ImageUploadModalProps) {
-  const [state, setState] = useState<UploadState>({ status: 'idle' });
+  const [status, setStatus] = useState<ModalStatus>('idle');
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
 
@@ -73,34 +75,40 @@ export function ImageUploadModal({
     });
   };
 
-  const handleFileSelect = useCallback(async (file: File) => {
-    const error = validateFile(file);
+  const handleFileSelect = useCallback(async (selectedFile: File) => {
+    setErrorMessage(null);
+    const error = validateFile(selectedFile);
     if (error) {
-      setState({ status: 'error', message: error });
+      setErrorMessage(error);
+      // If we had a previous image, keep it on screen so we don't drop the user back to empty
+      if (!previewUrl) {
+        setStatus('idle');
+      }
       return;
     }
 
     try {
-      const previewUrl = await createPreview(file);
-      setState({ status: 'preview', file, previewUrl });
+      const url = await createPreview(selectedFile);
+      setFile(selectedFile);
+      setPreviewUrl(url);
+      setStatus('preview');
     } catch {
-      setState({ status: 'error', message: 'Failed to preview image' });
+      setErrorMessage('Failed to preview image');
+      if (!previewUrl) setStatus('idle');
     }
-  }, [maxSizeBytes, acceptedTypes]);
+  }, [maxSizeBytes, acceptedTypes, previewUrl]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleFileSelect(file);
-    // Reset input
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) handleFileSelect(selectedFile);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     dragCounter.current = 0;
-    
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileSelect(file);
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile) handleFileSelect(droppedFile);
   }, [handleFileSelect]);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -110,61 +118,62 @@ export function ImageUploadModal({
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
     dragCounter.current++;
-    if (state.status === 'idle' || state.status === 'error') {
-      setState({ status: 'selecting' });
+    if (status === 'idle') {
+      setStatus('selecting');
     }
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     dragCounter.current--;
-    if (dragCounter.current === 0 && state.status === 'selecting') {
-      setState({ status: 'idle' });
+    if (dragCounter.current === 0 && status === 'selecting') {
+      setStatus('idle');
     }
   };
 
   const handleUpload = async () => {
-    if (state.status !== 'preview') return;
-    
-    setState({ status: 'uploading', progress: 0 });
-    
-    // Simulate progress updates
+    if (!file) return;
+
+    setStatus('uploading');
+    setProgress(0);
+    setErrorMessage(null);
+
+    // Simulate progress updates for UX
     const progressInterval = setInterval(() => {
-      setState(prev => {
-        if (prev.status === 'uploading' && prev.progress < 90) {
-          return { ...prev, progress: prev.progress + 10 };
-        }
+      setProgress(prev => {
+        if (prev < 90) return prev + 10;
         return prev;
       });
     }, 200);
 
     try {
-      await onUpload(state.file);
+      await onUpload(file);
       clearInterval(progressInterval);
-      setState({ status: 'success' });
-      // Auto close after success
+      setProgress(100);
+      setStatus('success');
       setTimeout(() => {
         handleClose();
       }, 1500);
     } catch (error) {
       clearInterval(progressInterval);
-      setState({ 
-        status: 'error', 
-        message: error instanceof Error ? error.message : 'Upload failed' 
-      });
+      setErrorMessage(error instanceof Error ? error.message : 'Upload failed');
+      setStatus('preview');
     }
   };
 
   const handleClose = () => {
-    // Cleanup preview URL
-    if (state.status === 'preview') {
-      URL.revokeObjectURL(state.previewUrl);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
     }
-    setState({ status: 'idle' });
+    setStatus('idle');
+    setFile(null);
+    setPreviewUrl(null);
+    setProgress(0);
+    setErrorMessage(null);
     onClose();
   };
 
-  const isDragging = state.status === 'selecting';
+  const isDragging = status === 'selecting';
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -186,71 +195,91 @@ export function ImageUploadModal({
         />
 
         <div className="mt-4">
-          {/* Error State */}
-          {state.status === 'error' && (
+          {/* Error Information */}
+          {errorMessage && (
             <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{state.message}</AlertDescription>
+              <AlertDescription>{errorMessage}</AlertDescription>
             </Alert>
           )}
 
-          {/* Uploading State */}
-          {state.status === 'uploading' && (
-            <div className="space-y-4 py-8">
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-                  <Upload className="h-8 w-8 text-primary animate-bounce" />
-                </div>
-                <p className="text-sm text-muted-foreground">Uploading...</p>
-              </div>
-              <Progress value={state.progress} className="h-2" />
-              <p className="text-center text-sm text-muted-foreground">
-                {state.progress}%
-              </p>
-            </div>
-          )}
-
-          {/* Success State */}
-          {state.status === 'success' && (
-            <div className="py-8 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
-                <CheckCircle2 className="h-8 w-8 text-green-600" />
-              </div>
-              <p className="font-medium">Upload successful!</p>
-              <p className="text-sm text-muted-foreground">Your image has been updated</p>
-            </div>
-          )}
-
-          {/* Preview State */}
-          {state.status === 'preview' && (
-            <div className="space-y-4">
-              <div className="relative aspect-square max-h-64 overflow-hidden rounded-lg border bg-muted">
-                <img
-                  src={state.previewUrl}
-                  alt="Preview"
-                  className="h-full w-full object-contain"
-                />
-                <button
-                  onClick={() => setState({ status: 'idle' })}
-                  className="absolute top-2 right-2 p-1 rounded-full bg-background/80 hover:bg-background"
+          {/* Preview / Uploading / Success State */}
+          {(status === 'preview' || status === 'uploading' || status === 'success') && previewUrl && (
+            <div className="space-y-6 py-4 animate-in fade-in">
+              <div className="flex justify-center flex-col items-center gap-4">
+                <div
+                  className={cn(
+                    "relative overflow-hidden border bg-muted shadow-sm group",
+                    isAvatar ? "w-48 h-48 rounded-full" : "w-64 h-64 rounded-lg",
+                    (status === 'uploading' || status === 'success') && "opacity-80 pointer-events-none"
+                  )}
                 >
-                  <X className="h-4 w-4" />
-                </button>
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="h-full w-full object-cover"
+                  />
+
+                  {/* Edit Overlay (Shown on Hover when previewing) */}
+                  {status === 'preview' && (
+                    <div
+                      className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <Pencil className="h-8 w-8" />
+                        <span className="text-sm font-medium">Change Photo</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload Progress Indicator beneath the image */}
+                {status === 'uploading' && (
+                  <div className="w-full max-w-[12rem] space-y-2 mt-2">
+                    <p className="text-center text-sm font-medium animate-pulse">Uploading... {progress}%</p>
+                    <Progress value={progress} className="h-2 w-full" />
+                  </div>
+                )}
+
+                {/* Success Message beneath the image */}
+                {status === 'success' && (
+                  <div className="w-full flex-col items-center space-y-1 mt-2 animate-in zoom-in fade-in duration-300">
+                    <div className="flex items-center justify-center gap-2 text-primary font-medium">
+                      <CheckCircle2 className="h-5 w-5" />
+                      <span>Upload successful!</span>
+                    </div>
+                  </div>
+                )}
               </div>
+
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setState({ status: 'idle' })}>
+                <Button
+                  variant="outline"
+                  onClick={() => handleClose()}
+                  disabled={status === 'uploading' || status === 'success'}
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleUpload}>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload
+                <Button
+                  onClick={handleUpload}
+                  disabled={status === 'uploading' || status === 'success'}
+                >
+                  {status === 'uploading' ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : status === 'success' ? (
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                  ) : (
+                    <Upload className="mr-2 h-4 w-4" />
+                  )}
+                  {status === 'uploading' ? 'Uploading...' : status === 'success' ? 'Success' : 'Upload'}
                 </Button>
               </div>
             </div>
           )}
 
           {/* Idle/Selecting State */}
-          {(state.status === 'idle' || state.status === 'selecting') && (
+          {(status === 'idle' || status === 'selecting') && (
             <div
               onClick={() => fileInputRef.current?.click()}
               onDrop={handleDrop}

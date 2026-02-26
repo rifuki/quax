@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { userService } from "@/lib/api";
 
 /**
- * Query Keys untuk User
+ * Query Keys for User
  */
 export const userKeys = {
   all: ["users"] as const,
@@ -15,17 +15,21 @@ export const userKeys = {
   byId: (id: string) => [...userKeys.all, id] as const,
 };
 
+import { useIsAuthenticated } from "@/features/auth/hooks/use-auth";
+
 /**
  * Hook to fetch current user profile
  */
 export function useUserProfile(options?: { enabled?: boolean }) {
+  const isAuth = useIsAuthenticated();
+
   return useQuery({
     queryKey: userKeys.me(),
     queryFn: userService.getMe,
-    enabled: options?.enabled ?? true,
+    enabled: isAuth && (options?.enabled ?? true),
     staleTime: 5 * 60 * 1000,
   });
 }
 
-// Alias untuk backward compatibility
+// Alias for backward compatibility
 export { useUserProfile as useUser };

@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Users, Key, TrendingUp, Shield, AlertCircle } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 import { Link } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/dashboard/admin")({
+export const Route = createFileRoute("/app/admin/")({
   component: AdminDashboard,
 });
 
@@ -27,14 +27,6 @@ const mockChartData = [
 function AdminDashboard() {
   const user = useAuthUser();
   const { data: stats, isLoading } = useDashboardStats();
-  const location = useLocation();
-  const isChildRoute = location.pathname !== "/dashboard/admin";
-
-  // Render child routes (Users, API Keys)
-  if (isChildRoute) {
-    return <Outlet />;
-  }
-  
 
   if (user?.role !== "admin") {
     return (
@@ -137,19 +129,19 @@ function AdminDashboard() {
             <ActionCard
               title="Manage Users"
               description="View, edit, and manage user accounts"
-              href="/dashboard/admin/users"
+              href="/app/admin/users"
               icon={<Users className="h-5 w-5" />}
             />
             <ActionCard
               title="API Keys"
               description="Create and manage API access keys"
-              href="/dashboard/admin/api-keys"
+              href="/app/admin/api-keys"
               icon={<Key className="h-5 w-5" />}
             />
             <ActionCard
               title="System Settings"
               description="Configure application settings"
-              href="/dashboard/admin/settings"
+              href="/app/admin/settings"
               icon={<TrendingUp className="h-5 w-5" />}
               comingSoon
             />
@@ -198,7 +190,7 @@ function StatCard({ title, value, description, icon, trend, trendUp, loading }: 
         <div className="text-2xl font-bold">{value.toLocaleString()}</div>
         <div className="flex items-center gap-2 mt-1">
           {trend && (
-            <span className={trendUp ? "text-green-600 text-xs" : "text-red-600 text-xs"}>
+            <span className={trendUp ? "text-miku-primary text-xs" : "text-miku-secondary-dark text-xs"}>
               {trend}
             </span>
           )}

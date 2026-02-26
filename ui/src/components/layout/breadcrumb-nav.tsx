@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/breadcrumb";
 
 const routeLabels: Record<string, string> = {
-  dashboard: "Dashboard",
+  app: "App", dashboard: "Dashboard",
   profile: "Profile",
   admin: "Admin",
 };
@@ -20,51 +20,33 @@ export function BreadcrumbNav() {
   const location = useLocation();
   const pathname = location.pathname;
 
-  // Parse path segments
-  const segments = pathname
-    .split("/")
-    .filter((segment) => segment && segment !== "dashboard");
+  // Determine base path for home icon
+  const basePath = pathname.startsWith("/app/admin") ? "/app/admin" : "/app";
 
-  if (pathname === "/dashboard") {
-    return (
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/dashboard">
-                <Home className="h-4 w-4" />
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator>
-            <ChevronRight className="h-4 w-4" />
-          </BreadcrumbSeparator>
-          <BreadcrumbItem>
-            <BreadcrumbPage>Dashboard</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-    );
-  }
+  // Get path segments after the base path
+  const relativePath = pathname.replace(basePath, "");
+  const segments = relativePath.split("/").filter(Boolean);
 
   return (
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
-            <Link to="/dashboard">
+            <Link to={basePath}>
               <Home className="h-4 w-4" />
             </Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
-        <BreadcrumbSeparator>
-          <ChevronRight className="h-4 w-4" />
-        </BreadcrumbSeparator>
+        {segments.length > 0 && (
+          <BreadcrumbSeparator>
+            <ChevronRight className="h-4 w-4" />
+          </BreadcrumbSeparator>
+        )}
 
         {segments.map((segment, index) => {
           const isLast = index === segments.length - 1;
-          const href = "/dashboard/" + segments.slice(0, index + 1).join("/");
-          const label = routeLabels[segment] || segment;
+          const href = basePath + "/" + segments.slice(0, index + 1).join("/");
+          const label = routeLabels[segment] || segment.charAt(0).toUpperCase() + segment.slice(1);
 
           return (
             <div key={segment} className="flex items-center gap-2">

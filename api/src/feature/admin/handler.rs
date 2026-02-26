@@ -53,7 +53,7 @@ pub async fn list_users(
     State(state): State<AppState>,
 ) -> ApiResult<Vec<UserResponse>> {
     let users: Vec<User> = sqlx::query_as(
-        "SELECT id, email, username, name, password_hash, role, created_at, updated_at 
+        "SELECT id, email, username, name, password_hash, role, avatar_url, created_at, updated_at 
          FROM users ORDER BY created_at DESC"
     )
     .fetch_all(state.db.pool())

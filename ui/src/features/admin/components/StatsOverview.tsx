@@ -32,7 +32,7 @@ function StatCard({ title, value, icon, description, trend }: StatCardProps) {
         {(description || trend !== undefined) && (
           <p className="text-xs text-muted-foreground mt-1">
             {trend !== undefined && (
-              <span className={trend >= 0 ? "text-green-600" : "text-red-600"}>
+              <span className={trend >= 0 ? "text-miku-primary" : "text-miku-secondary-dark"}>
                 {trend >= 0 ? "+" : ""}{trend}%
               </span>
             )}

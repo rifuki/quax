@@ -65,7 +65,7 @@ import { useAuthUser } from "@/features/auth";
 import { toast } from "sonner";
 import type { UserWithTimestamps } from "@/features/user";
 
-export const Route = createFileRoute("/dashboard/admin/users")({
+export const Route = createFileRoute("/app/admin/users")({
   component: UsersManagementPage,
 });
 
@@ -220,7 +220,7 @@ function UsersManagementPage() {
             <DropdownMenuContent align="end" className="w-48">
               {user.role !== "admin" ? (
                 <DropdownMenuItem
-                  
+
                   onClick={() => {
                     setSelectedUser(user);
                     setNewRole("admin");
@@ -232,7 +232,7 @@ function UsersManagementPage() {
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem
-                  
+
                   onClick={() => {
                     setSelectedUser(user);
                     setNewRole("user");
@@ -246,7 +246,7 @@ function UsersManagementPage() {
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                
+
                 onClick={() => {
                   setSelectedUser(user);
                   setDialogType("reset");
@@ -410,7 +410,7 @@ function UsersManagementPage() {
           <p className="text-muted-foreground">Manage user accounts and permissions</p>
         </div>
         <Button variant="outline" asChild>
-          <Link to="/dashboard/admin">← Back to Admin</Link>
+          <Link to="/app/admin">← Back to Admin</Link>
         </Button>
       </div>
 
@@ -483,9 +483,9 @@ function UsersManagementPage() {
                             {header.isPlaceholder
                               ? null
                               : flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext()
-                                )}
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
                           </TableHead>
                         ))}
                       </TableRow>

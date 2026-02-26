@@ -1,0 +1,86 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Bell } from "lucide-react";
+import { useState } from "react";
+import { Link } from "@tanstack/react-router";
+
+import { Button } from "@/components/ui/button";
+import { CommandMenu, CommandMenuTrigger } from "@/components/layout/command-menu";
+import { useAuthUser } from "@/features/auth";
+import { HeaderUserMenu } from "@/components/layout/header-user-menu";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+export const Route = createFileRoute("/app/")({
+    component: UserDashboard,
+});
+
+function UserDashboard() {
+    const user = useAuthUser();
+    const navigate = useNavigate();
+    const [commandOpen, setCommandOpen] = useState(false);
+
+    if (user?.role === "admin") {
+        navigate({ to: "/app/admin", replace: true });
+        return null;
+    }
+
+    return (
+        <div className="flex min-h-screen flex-col bg-background">
+            {/* Top Navbar */}
+            <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between gap-2 border-b bg-background/80 px-4 backdrop-blur-md">
+                <div className="flex items-center gap-2">
+                    <Link to="/app" className="flex items-center gap-2">
+                        <img src="/favicon.svg" alt="Quax Logo" className="aspect-square size-8" />
+                        <span className="font-semibold hidden sm:inline-block">Quax</span>
+                    </Link>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <CommandMenuTrigger onClick={() => setCommandOpen(true)} />
+                    <CommandMenu open={commandOpen} setOpen={setCommandOpen} />
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="relative">
+                                <Bell className="h-5 w-5" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-80">
+                            <DropdownMenuLabel>
+                                <span>Notifications</span>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <div className="py-4 text-center text-sm text-muted-foreground">
+                                No new notifications
+                            </div>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <HeaderUserMenu />
+                </div>
+            </header>
+
+            {/* Page Content */}
+            <main className="flex-1 p-6 sm:p-10 max-w-7xl mx-auto w-full space-y-8">
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+                    <p className="text-muted-foreground mt-2 text-lg">
+                        Welcome back, {user?.name || user?.username || 'User'}!
+                    </p>
+                </div>
+
+                <div className="rounded-xl border border-dashed bg-card/50 p-12 text-center shadow-sm flex flex-col items-center justify-center min-h-[400px]">
+                    <h3 className="text-xl font-semibold tracking-tight text-foreground/80">Features will be added in the future</h3>
+                    <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
+                        We are currently working on exciting new features for your dashboard. Stay tuned!
+                    </p>
+                </div>
+            </main>
+        </div>
+    );
+}
