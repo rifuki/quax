@@ -43,6 +43,8 @@ pub enum JwtError {
     WrongType,
     #[error("Token creation failed")]
     CreationFailed,
+    #[error("Session expired - absolute timeout reached")]
+    SessionExpired,
 }
 
 impl From<jsonwebtoken::errors::Error> for JwtError {
@@ -60,13 +62,22 @@ pub struct TokenPair {
     pub access_token: String,
     pub refresh_token: String,
     pub expires_in: i64, // Access token expiry in seconds
+    pub session_id: String,
+    pub session_iat: i64,
 }
 
 /// Create access token (short-lived)
-pub fn create_access_token(
+///
+/// # Arguments
+/// * `user_id` - User UUID
+/// * `roles` - User roles
+/// * `session_id` - Session ID (shared with refresh token)
+/// * `session_iat` - Session issued at (for absolute timeout)
+fn create_access_token_with_session(
     user_id: Uuid,
-    _email: &str,
     roles: &[Role],
+    session_id: &str,
+    session_iat: i64,
 ) -> Result<String, JwtError> {
     let now = Utc::now();
     let expiry = access_expiry_secs();
@@ -79,6 +90,8 @@ pub fn create_access_token(
         iat: now.timestamp(),
         roles: roles.to_vec(),
         token_type: TokenType::Access,
+        sid: session_id.to_string(),
+        s_iat: session_iat,
     };
 
     encode(
@@ -90,7 +103,16 @@ pub fn create_access_token(
 }
 
 /// Create refresh token (long-lived)
-pub fn create_refresh_token(user_id: Uuid) -> Result<String, JwtError> {
+///
+/// # Arguments
+/// * `user_id` - User UUID
+/// * `session_id` - Session ID (shared with access token)
+/// * `session_iat` - Session issued at (for absolute timeout)
+fn create_refresh_token_with_session(
+    user_id: Uuid,
+    session_id: &str,
+    session_iat: i64,
+) -> Result<String, JwtError> {
     let now = Utc::now();
     let expiry = refresh_expiry_secs();
     let exp = now + Duration::seconds(expiry);
@@ -100,8 +122,10 @@ pub fn create_refresh_token(user_id: Uuid) -> Result<String, JwtError> {
         jti: Uuid::new_v4().to_string(),
         exp: exp.timestamp(),
         iat: now.timestamp(),
-        roles: vec![],
+        roles: vec![], // Refresh tokens don't need roles
         token_type: TokenType::Refresh,
+        sid: session_id.to_string(),
+        s_iat: session_iat,
     };
 
     encode(
@@ -112,19 +136,24 @@ pub fn create_refresh_token(user_id: Uuid) -> Result<String, JwtError> {
     .map_err(|_| JwtError::CreationFailed)
 }
 
-/// Create both tokens
+/// Create both tokens with session tracking
 pub fn create_token_pair(
     user_id: Uuid,
-    email: &str,
+    _email: &str,
     roles: &[Role],
 ) -> Result<TokenPair, JwtError> {
-    let access_token = create_access_token(user_id, email, roles)?;
-    let refresh_token = create_refresh_token(user_id)?;
+    let session_id = Uuid::new_v4().to_string();
+    let session_iat = Utc::now().timestamp();
+
+    let access_token = create_access_token_with_session(user_id, roles, &session_id, session_iat)?;
+    let refresh_token = create_refresh_token_with_session(user_id, &session_id, session_iat)?;
 
     Ok(TokenPair {
         access_token,
         refresh_token,
         expires_in: access_expiry_secs(),
+        session_id,
+        session_iat,
     })
 }
 
@@ -145,7 +174,7 @@ pub fn validate_access_token(token: &str) -> Result<Claims, JwtError> {
     Ok(token_data.claims)
 }
 
-/// Validate refresh token
+/// Validate refresh token with absolute session timeout check
 pub fn validate_refresh_token(token: &str) -> Result<Claims, JwtError> {
     let validation = Validation::default();
 
@@ -159,10 +188,23 @@ pub fn validate_refresh_token(token: &str) -> Result<Claims, JwtError> {
         return Err(JwtError::WrongType);
     }
 
+    // Check absolute session timeout (7 days from session start)
+    let max_session_duration = refresh_expiry_secs();
+    let now = Utc::now().timestamp();
+
+    if now > token_data.claims.s_iat + max_session_duration {
+        return Err(JwtError::SessionExpired);
+    }
+
     Ok(token_data.claims)
 }
 
 /// Extract user ID from claims
 pub fn extract_user_id(claims: &Claims) -> Result<Uuid, JwtError> {
     Uuid::parse_str(&claims.sub).map_err(|_| JwtError::Invalid)
+}
+
+/// Extract session ID from claims
+pub fn extract_session_id(claims: &Claims) -> String {
+    claims.sid.clone()
 }

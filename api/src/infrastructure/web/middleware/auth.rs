@@ -43,6 +43,7 @@ pub async fn auth_middleware(
         user_id,
         email: String::new(), // not stored in claims; fetch from DB if needed
         roles: claims.roles,
+        session_id: claims.sid,
     });
 
     Ok(next.run(request).await)
@@ -74,6 +75,7 @@ pub async fn optional_auth_middleware(
                 user_id,
                 email: String::new(),
                 roles: claims.roles,
+                session_id: claims.sid,
             });
         }
     }

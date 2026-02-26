@@ -5,14 +5,16 @@ use axum_extra::extract::cookie::Cookie;
 use crate::{
     feature::{
         auth::{
+            auth_method::{AuthMethodService, AuthProvider},
             repository::AuthError,
-            types::{AuthResponse, LoginCredentials, TokenResponse, UserResponse},
+            session::{DeviceInfo, SessionService},
+            types::{AuthResponse, TokenResponse, UserResponse},
             utils::{
                 create_cleared_cookie, create_refresh_cookie, create_token_pair, extract_user_id,
                 validate_refresh_token,
             },
         },
-        user::{CreateUser, repository::UserRepository},
+        user::{UserProfileRepository, repository::UserRepository},
     },
     infrastructure::{
         config::Config,
@@ -20,54 +22,101 @@ use crate::{
     },
 };
 
-/// Auth service with JWT
+/// Auth service with JWT, session management, and OAuth support
 #[derive(Clone)]
 pub struct AuthService {
     db: Database,
     user_repo: Arc<dyn UserRepository>,
+    profile_repo: Arc<dyn UserProfileRepository>,
+    auth_method_service: AuthMethodService,
     config: Arc<Config>,
     session_blacklist: Option<Arc<dyn SessionBlacklist>>,
+    session_service: SessionService,
 }
 
 impl AuthService {
     pub fn new(
         db: Database,
         user_repo: Arc<dyn UserRepository>,
+        profile_repo: Arc<dyn UserProfileRepository>,
+        auth_method_service: AuthMethodService,
         config: Arc<Config>,
         session_blacklist: Option<Arc<dyn SessionBlacklist>>,
+        session_service: SessionService,
     ) -> Self {
         Self {
             db,
             user_repo,
+            profile_repo,
+            auth_method_service,
             config,
             session_blacklist,
+            session_service,
         }
     }
 
-    /// Register new user
+    /// Register new user with password
     pub async fn register(
         &self,
-        user: CreateUser,
+        email: &str,
+        username: Option<&str>,
+        password: &str,
+        full_name: Option<&str>,
     ) -> Result<(AuthResponse, Cookie<'static>), AuthError> {
-        // Hash password and create user
-        let created_user = self.user_repo.create(self.db.pool(), &user).await?;
+        // 1. Create user (identity only)
+        let user = self
+            .user_repo
+            .create(self.db.pool(), email, username)
+            .await
+            .map_err(|e| match e {
+                crate::feature::user::repository::UserRepositoryError::EmailExists => {
+                    AuthError::EmailExists
+                }
+                crate::feature::user::repository::UserRepositoryError::UsernameExists => {
+                    AuthError::UsernameExists
+                }
+                _ => AuthError::Database(sqlx::Error::RowNotFound),
+            })?;
 
-        // Generate tokens
-        let roles = vec![created_user.role()];
-        let tokens = create_token_pair(created_user.id, &created_user.email, &roles)
+        // 2. Create profile
+        let _profile = self
+            .profile_repo
+            .create(self.db.pool(), user.id)
+            .await
+            .map_err(|_| AuthError::Database(sqlx::Error::RowNotFound))?;
+
+        // 3. Create password auth method
+        let _auth_method = self
+            .auth_method_service
+            .create_password_auth(user.id, password, true)
+            .await
             .map_err(|_| AuthError::HashError)?;
+
+        // 4. Update profile with full name if provided
+        if let Some(name) = full_name {
+            let _ = self
+                .profile_repo
+                .update(self.db.pool(), user.id, Some(name), None, None, None)
+                .await;
+        }
+
+        // 5. Generate tokens
+        let roles = vec![user.role()];
+        let tokens =
+            create_token_pair(user.id, &user.email, &roles).map_err(|_| AuthError::HashError)?;
 
         let refresh_cookie = create_refresh_cookie(&tokens.refresh_token, &self.config);
 
-        let role = created_user.role().to_string();
+        let username = user.username.clone();
+        let role = user.role().to_string();
 
         let response = AuthResponse {
             user: UserResponse {
-                id: created_user.id,
-                email: created_user.email,
-                username: created_user.username,
-                name: created_user.name,
-                avatar_url: created_user.avatar_url,
+                id: user.id,
+                email: user.email,
+                username,
+                name: full_name.map(|s| s.to_string()).unwrap_or_default(),
+                avatar_url: None,
                 role,
             },
             token: TokenResponse {
@@ -79,41 +128,279 @@ impl AuthService {
         Ok((response, refresh_cookie))
     }
 
-    /// Login user
+    /// Login user with password
     pub async fn login(
         &self,
-        creds: LoginCredentials,
+        email: &str,
+        password: &str,
+        device_info: Option<&DeviceInfo>,
     ) -> Result<(AuthResponse, Cookie<'static>), AuthError> {
+        // 1. Find user by email
         let user = self
             .user_repo
-            .find_by_email(self.db.pool(), &creds.email)
-            .await?
+            .find_by_email(self.db.pool(), email)
+            .await
+            .map_err(|_| AuthError::Database(sqlx::Error::RowNotFound))?
             .ok_or(AuthError::InvalidCredentials)?;
 
-        // Verify password
-        use argon2::{Argon2, PasswordHash, PasswordVerifier};
-        let parsed_hash =
-            PasswordHash::new(&user.password_hash).map_err(|_| AuthError::HashError)?;
+        if !user.is_active {
+            return Err(AuthError::InvalidCredentials);
+        }
 
-        Argon2::default()
-            .verify_password(creds.password.as_bytes(), &parsed_hash)
-            .map_err(|_| AuthError::InvalidCredentials)?;
+        // 2. Find password auth method
+        let auth_method = self
+            .auth_method_service
+            .find_by_user_and_provider(user.id, AuthProvider::Password)
+            .await
+            .map_err(|_| AuthError::Database(sqlx::Error::RowNotFound))?
+            .ok_or(AuthError::InvalidCredentials)?;
 
+        // 3. Verify password
+        if !auth_method
+            .verify_password(password)
+            .map_err(|_| AuthError::HashError)?
+        {
+            return Err(AuthError::InvalidCredentials);
+        }
+
+        // 4. Update last used (fire and forget)
+        let _ = self.auth_method_service.touch(auth_method.id).await;
+
+        // 5. Get profile for response
+        let profile = self
+            .profile_repo
+            .find_by_user_id(self.db.pool(), user.id)
+            .await
+            .ok()
+            .flatten();
+
+        // 6. Generate tokens
         let roles = vec![user.role()];
         let tokens =
             create_token_pair(user.id, &user.email, &roles).map_err(|_| AuthError::HashError)?;
 
+        // 7. Create session record
+        if let Some(info) = device_info {
+            let refresh_expiry: i64 = std::env::var("JWT_REFRESH_EXPIRY_SECS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(604800); // default 7 days
+
+            let expires_at =
+                chrono::DateTime::from_timestamp(tokens.session_iat + refresh_expiry, 0)
+                    .unwrap_or_else(|| chrono::Utc::now() + chrono::Duration::days(7));
+
+            let _ = self
+                .session_service
+                .create_session(user.id, &tokens.session_id, info, expires_at)
+                .await;
+        }
+
         let refresh_cookie = create_refresh_cookie(&tokens.refresh_token, &self.config);
 
+        let username = user.username.clone();
         let role = user.role().to_string();
 
         let response = AuthResponse {
             user: UserResponse {
                 id: user.id,
                 email: user.email,
-                username: user.username,
-                name: user.name,
-                avatar_url: user.avatar_url,
+                username,
+                name: profile
+                    .as_ref()
+                    .and_then(|p| p.full_name.clone())
+                    .unwrap_or_default(),
+                avatar_url: profile.as_ref().and_then(|p| p.avatar_url.clone()),
+                role,
+            },
+            token: TokenResponse {
+                access_token: tokens.access_token,
+                expires_in: tokens.expires_in,
+            },
+        };
+
+        Ok((response, refresh_cookie))
+    }
+
+    /// OAuth login/register
+    #[allow(clippy::too_many_arguments)]
+    pub async fn oauth_login(
+        &self,
+        provider: AuthProvider,
+        provider_id: &str,
+        email: &str,
+        name: Option<&str>,
+        access_token: Option<&str>,
+        refresh_token: Option<&str>,
+        expires_at: Option<chrono::DateTime<chrono::Utc>>,
+        _device_info: Option<&DeviceInfo>,
+    ) -> Result<(AuthResponse, Cookie<'static>), AuthError> {
+        // 1. Check if OAuth account exists
+        if let Some(auth_method) = self
+            .auth_method_service
+            .find_by_provider_id(provider, provider_id)
+            .await
+            .map_err(|_| AuthError::Database(sqlx::Error::RowNotFound))?
+        {
+            // Existing OAuth user - login
+            let user = self
+                .user_repo
+                .find_by_id(self.db.pool(), auth_method.user_id)
+                .await
+                .map_err(|_| AuthError::Database(sqlx::Error::RowNotFound))?
+                .ok_or(AuthError::InvalidCredentials)?;
+
+            // Generate tokens
+            let roles = vec![user.role()];
+            let tokens = create_token_pair(user.id, &user.email, &roles)
+                .map_err(|_| AuthError::HashError)?;
+
+            let refresh_cookie = create_refresh_cookie(&tokens.refresh_token, &self.config);
+
+            let profile = self
+                .profile_repo
+                .find_by_user_id(self.db.pool(), user.id)
+                .await
+                .ok()
+                .flatten();
+
+            let username = user.username.clone();
+            let role = user.role().to_string();
+
+            let response = AuthResponse {
+                user: UserResponse {
+                    id: user.id,
+                    email: user.email,
+                    username,
+                    name: profile
+                        .as_ref()
+                        .and_then(|p| p.full_name.clone())
+                        .unwrap_or_default(),
+                    avatar_url: profile.as_ref().and_then(|p| p.avatar_url.clone()),
+                    role,
+                },
+                token: TokenResponse {
+                    access_token: tokens.access_token,
+                    expires_in: tokens.expires_in,
+                },
+            };
+
+            return Ok((response, refresh_cookie));
+        }
+
+        // 2. Check if email exists - link to existing account
+        if let Some(user) = self
+            .user_repo
+            .find_by_email(self.db.pool(), email)
+            .await
+            .map_err(|_| AuthError::Database(sqlx::Error::RowNotFound))?
+        {
+            // Link OAuth to existing user
+            let _ = self
+                .auth_method_service
+                .create_oauth_auth(
+                    user.id,
+                    provider,
+                    provider_id,
+                    access_token,
+                    refresh_token,
+                    expires_at,
+                    false, // Not primary
+                )
+                .await
+                .map_err(|_| AuthError::Database(sqlx::Error::RowNotFound))?;
+
+            // Generate tokens
+            let roles = vec![user.role()];
+            let tokens = create_token_pair(user.id, &user.email, &roles)
+                .map_err(|_| AuthError::HashError)?;
+
+            let refresh_cookie = create_refresh_cookie(&tokens.refresh_token, &self.config);
+
+            let profile = self
+                .profile_repo
+                .find_by_user_id(self.db.pool(), user.id)
+                .await
+                .ok()
+                .flatten();
+
+            let username = user.username.clone();
+            let role = user.role().to_string();
+
+            let response = AuthResponse {
+                user: UserResponse {
+                    id: user.id,
+                    email: user.email,
+                    username,
+                    name: profile
+                        .as_ref()
+                        .and_then(|p| p.full_name.clone())
+                        .unwrap_or_default(),
+                    avatar_url: profile.as_ref().and_then(|p| p.avatar_url.clone()),
+                    role,
+                },
+                token: TokenResponse {
+                    access_token: tokens.access_token,
+                    expires_in: tokens.expires_in,
+                },
+            };
+
+            return Ok((response, refresh_cookie));
+        }
+
+        // 3. Create new user with OAuth
+        let user = self
+            .user_repo
+            .create(self.db.pool(), email, None)
+            .await
+            .map_err(|_| AuthError::Database(sqlx::Error::RowNotFound))?;
+
+        // 4. Create profile
+        let _profile = self
+            .profile_repo
+            .create(self.db.pool(), user.id)
+            .await
+            .map_err(|_| AuthError::Database(sqlx::Error::RowNotFound))?;
+
+        if let Some(n) = name {
+            let _ = self
+                .profile_repo
+                .update(self.db.pool(), user.id, Some(n), None, None, None)
+                .await;
+        }
+
+        // 5. Create OAuth auth method
+        let _ = self
+            .auth_method_service
+            .create_oauth_auth(
+                user.id,
+                provider,
+                provider_id,
+                access_token,
+                refresh_token,
+                expires_at,
+                true, // Primary for OAuth-only users
+            )
+            .await
+            .map_err(|_| AuthError::Database(sqlx::Error::RowNotFound))?;
+
+        // 6. Generate tokens
+        let roles = vec![user.role()];
+        let tokens =
+            create_token_pair(user.id, &user.email, &roles).map_err(|_| AuthError::HashError)?;
+
+        let refresh_cookie = create_refresh_cookie(&tokens.refresh_token, &self.config);
+
+        let username = user.username.clone();
+        let role = user.role().to_string();
+
+        let response = AuthResponse {
+            user: UserResponse {
+                id: user.id,
+                email: user.email,
+                username,
+                name: name.map(|s| s.to_string()).unwrap_or_default(),
+                avatar_url: None,
                 role,
             },
             token: TokenResponse {
@@ -126,22 +413,18 @@ impl AuthService {
     }
 
     /// Refresh access token with rotation
-    ///
-    /// Security features:
-    /// 1. Validates the refresh token signature and expiry
-    /// 2. Checks if token is blacklisted (if Redis is available)
-    /// 3. Blacklists the old refresh token (one-time use)
-    /// 4. Generates new token pair (rotation)
     pub async fn refresh_token(
         &self,
         refresh_token: &str,
     ) -> Result<(TokenResponse, Cookie<'static>), AuthError> {
-        let claims =
-            validate_refresh_token(refresh_token).map_err(|_| AuthError::InvalidCredentials)?;
+        let claims = validate_refresh_token(refresh_token).map_err(|e| match e {
+            crate::feature::auth::utils::JwtError::SessionExpired => AuthError::SessionExpired,
+            _ => AuthError::InvalidCredentials,
+        })?;
 
         let user_id = extract_user_id(&claims).map_err(|_| AuthError::InvalidCredentials)?;
 
-        // Check if token is blacklisted (if Redis available)
+        // Check blacklist
         if let Some(ref blacklist) = self.session_blacklist {
             let is_blacklisted = blacklist
                 .is_blacklisted(&claims.jti)
@@ -149,37 +432,32 @@ impl AuthService {
                 .map_err(|_| AuthError::InvalidCredentials)?;
 
             if is_blacklisted {
-                tracing::warn!(
-                    "Attempted to use blacklisted refresh token - possible token reuse attack"
-                );
+                tracing::warn!("Token reuse detected for session: {}", claims.sid);
                 return Err(AuthError::InvalidCredentials);
             }
         }
 
+        // Update session last active
+        let _ = self.session_service.touch_session(&claims.sid).await;
+
         let user = self
             .user_repo
             .find_by_id(self.db.pool(), user_id)
-            .await?
+            .await
+            .map_err(|_| AuthError::Database(sqlx::Error::RowNotFound))?
             .ok_or(AuthError::InvalidCredentials)?;
 
-        // Blacklist the old refresh token (one-time use)
+        // Blacklist old token
         if let Some(ref blacklist) = self.session_blacklist {
-            let expires_at = claims.exp as i64;
-            if let Err(e) = blacklist.blacklist_session(&claims.jti, expires_at).await {
-                tracing::error!("Failed to blacklist refresh token: {}", e);
-                // Continue anyway - better UX than failing the refresh
-                // But log for monitoring
-            }
+            let _ = blacklist.blacklist_session(&claims.jti, claims.exp).await;
         }
 
-        // Re-read role from DB so role changes take effect at next refresh
+        // Generate new tokens
         let roles = vec![user.role()];
         let tokens =
             create_token_pair(user.id, &user.email, &roles).map_err(|_| AuthError::HashError)?;
 
         let refresh_cookie = create_refresh_cookie(&tokens.refresh_token, &self.config);
-
-        tracing::debug!("Refresh token rotated for user: {}", user_id);
 
         Ok((
             TokenResponse {
@@ -190,45 +468,45 @@ impl AuthService {
         ))
     }
 
-    /// Logout — clears refresh token cookie and blacklists both tokens
-    ///
-    /// Blacklists both access token and refresh token (if Redis available).
-    /// This provides immediate logout even before token expiry.
+    /// Logout
     pub async fn logout(
         &self,
         refresh_token: Option<&str>,
         access_token: Option<&str>,
     ) -> Cookie<'static> {
-        // Blacklist the refresh token if provided
-        if let (Some(token), Some(blacklist)) = (refresh_token, self.session_blacklist.as_ref()) {
-            if let Ok(claims) = validate_refresh_token(token) {
-                let expires_at = claims.exp as i64;
-                if let Err(e) = blacklist.blacklist_session(&claims.jti, expires_at).await {
-                    tracing::error!("Failed to blacklist refresh token during logout: {}", e);
-                } else {
-                    tracing::debug!(
-                        "Refresh token blacklisted during logout for jti: {}",
-                        claims.jti
-                    );
-                }
-            }
+        // Blacklist tokens if provided
+        if let (Some(token), Some(blacklist)) = (refresh_token, self.session_blacklist.as_ref())
+            && let Ok(claims) = validate_refresh_token(token)
+        {
+            let _ = blacklist.blacklist_session(&claims.jti, claims.exp).await;
         }
 
-        // Blacklist the access token if provided
-        if let (Some(token), Some(blacklist)) = (access_token, self.session_blacklist.as_ref()) {
-            if let Ok(claims) = crate::feature::auth::utils::validate_access_token(token) {
-                let expires_at = claims.exp as i64;
-                if let Err(e) = blacklist.blacklist_session(&claims.jti, expires_at).await {
-                    tracing::error!("Failed to blacklist access token during logout: {}", e);
-                } else {
-                    tracing::debug!(
-                        "Access token blacklisted during logout for jti: {}",
-                        claims.jti
-                    );
-                }
-            }
+        if let (Some(token), Some(blacklist)) = (access_token, self.session_blacklist.as_ref())
+            && let Ok(claims) = crate::feature::auth::utils::validate_access_token(token)
+        {
+            let _ = blacklist.blacklist_session(&claims.jti, claims.exp).await;
         }
 
         create_cleared_cookie(&self.config)
+    }
+
+    /// Get user with profile
+    pub async fn get_user_with_profile(
+        &self,
+        user_id: uuid::Uuid,
+    ) -> Result<Option<crate::feature::user::UserWithProfile>, sqlx::Error> {
+        self.profile_repo
+            .get_user_with_profile(self.db.pool(), user_id)
+            .await
+    }
+
+    /// Get auth method service
+    pub fn auth_method_service(&self) -> &AuthMethodService {
+        &self.auth_method_service
+    }
+
+    /// Get session service
+    pub fn session_service(&self) -> &SessionService {
+        &self.session_service
     }
 }

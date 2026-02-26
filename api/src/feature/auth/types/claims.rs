@@ -44,15 +44,17 @@ impl fmt::Display for TokenType {
     }
 }
 
-/// JWT Claims
+/// JWT Claims with session tracking
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Claims {
     pub sub: String,           // Subject (user ID)
-    pub jti: String,           // JWT ID (unique per token, enables future revocation)
+    pub jti: String,           // JWT ID (unique per token, enables revocation)
     pub exp: i64,              // Expiration time
     pub iat: i64,              // Issued at
     pub roles: Vec<Role>,      // User roles
     pub token_type: TokenType, // access or refresh
+    pub sid: String,           // Session ID (shared across tokens in same session)
+    pub s_iat: i64,            // Session issued at (for absolute timeout)
 }
 
 /// Authenticated user extracted from JWT
@@ -61,4 +63,5 @@ pub struct AuthUser {
     pub user_id: uuid::Uuid,
     pub email: String,
     pub roles: Vec<Role>,
+    pub session_id: String, // Added for session management
 }

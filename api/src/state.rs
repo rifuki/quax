@@ -8,8 +8,14 @@ use crate::{
             stats::{StatsRepository, StatsRepositoryImpl, StatsService},
             user::{AdminUserRepository, AdminUserRepositoryImpl},
         },
-        auth::service::AuthService,
-        user::repository::{UserRepository, UserRepositoryImpl},
+        auth::{
+            auth_method::{AuthMethodRepositoryImpl, AuthMethodService},
+            service::AuthService,
+            session::{SessionRepositoryImpl, SessionService},
+        },
+        user::{
+            UserProfileRepository, UserProfileRepositoryImpl, UserRepository, UserRepositoryImpl,
+        },
     },
     infrastructure::{
         config::Config,
@@ -29,6 +35,7 @@ pub struct AppState {
     pub db: Database,
     pub auth_service: Arc<AuthService>,
     pub user_repo: Arc<dyn UserRepository>,
+    pub user_profile_repo: Arc<dyn UserProfileRepository>,
     pub admin_user_repo: Arc<dyn AdminUserRepository>,
     pub stats_service: Arc<StatsService>,
     pub storage: Arc<dyn StorageProvider>,
@@ -56,10 +63,19 @@ impl AppState {
             .await
             .wrap_err("Failed to connect to database")?;
 
+        // Repositories
         let user_repo: Arc<dyn UserRepository> = Arc::new(UserRepositoryImpl::new());
+        let user_profile_repo: Arc<dyn UserProfileRepository> =
+            Arc::new(UserProfileRepositoryImpl::new());
         let admin_user_repo: Arc<dyn AdminUserRepository> =
             Arc::new(AdminUserRepositoryImpl::new());
+        let auth_method_repo = Arc::new(AuthMethodRepositoryImpl::new());
+        let session_repo = Arc::new(SessionRepositoryImpl::new());
         let stats_repository: Arc<dyn StatsRepository> = Arc::new(StatsRepositoryImpl::new());
+
+        // Services
+        let auth_method_service = AuthMethodService::new(db.clone(), auth_method_repo);
+        let session_service = SessionService::new(db.clone(), session_repo);
 
         // Initialize Redis if configured
         let session_blacklist: Option<Arc<dyn SessionBlacklist>> = if let Some(ref _redis_url) =
@@ -83,8 +99,11 @@ impl AppState {
         let auth_service = Arc::new(AuthService::new(
             db.clone(),
             Arc::clone(&user_repo),
+            Arc::clone(&user_profile_repo),
+            auth_method_service,
             Arc::new(config.clone()),
             session_blacklist.clone(),
+            session_service,
         ));
 
         let stats_service = Arc::new(StatsService::new(stats_repository));
@@ -99,6 +118,7 @@ impl AppState {
             db,
             auth_service,
             user_repo,
+            user_profile_repo,
             admin_user_repo,
             stats_service,
             storage,
@@ -112,10 +132,19 @@ impl AppState {
         use crate::infrastructure::storage::LocalStorage;
         use tracing_subscriber::{EnvFilter, Registry, reload};
 
+        // Repositories
         let user_repo: Arc<dyn UserRepository> = Arc::new(UserRepositoryImpl::new());
+        let user_profile_repo: Arc<dyn UserProfileRepository> =
+            Arc::new(UserProfileRepositoryImpl::new());
         let admin_user_repo: Arc<dyn AdminUserRepository> =
             Arc::new(AdminUserRepositoryImpl::new());
+        let auth_method_repo = Arc::new(AuthMethodRepositoryImpl::new());
+        let session_repo = Arc::new(SessionRepositoryImpl::new());
         let stats_repository: Arc<dyn StatsRepository> = Arc::new(StatsRepositoryImpl::new());
+
+        // Services
+        let auth_method_service = AuthMethodService::new(db.clone(), auth_method_repo);
+        let session_service = SessionService::new(db.clone(), session_repo);
 
         // No Redis in tests
         let session_blacklist: Option<Arc<dyn SessionBlacklist>> = None;
@@ -123,8 +152,11 @@ impl AppState {
         let auth_service = Arc::new(AuthService::new(
             db.clone(),
             Arc::clone(&user_repo),
+            Arc::clone(&user_profile_repo),
+            auth_method_service,
             Arc::new(config.clone()),
             session_blacklist.clone(),
+            session_service,
         ));
 
         let stats_service = Arc::new(StatsService::new(stats_repository));
@@ -143,10 +175,11 @@ impl AppState {
             db,
             auth_service,
             user_repo,
+            user_profile_repo,
             admin_user_repo,
             stats_service,
             storage,
-            session_blacklist: None, // No Redis in tests
+            session_blacklist: None,
             log_reload_handle: Arc::new(handle),
         }
     }

@@ -4,8 +4,14 @@
 use crate::{
     feature::{
         admin::api_key::{repository::ApiKeyRepositoryImpl, service::ApiKeyService},
-        auth::service::AuthService,
-        user::CreateUser,
+        auth::{
+            auth_method::{AuthMethodRepositoryImpl, AuthMethodService},
+            service::AuthService,
+            session::{SessionRepositoryImpl, SessionService},
+        },
+        user::{
+            UserProfileRepository, UserProfileRepositoryImpl, UserRepository, UserRepositoryImpl,
+        },
     },
     infrastructure::{config::Config, persistence::Database},
 };
@@ -50,25 +56,37 @@ pub async fn bootstrap(db: &Database, config: &Config) -> eyre::Result<()> {
 
     tracing::info!("👤 Creating bootstrap admin user: {}", admin_email);
 
-    // Create admin via auth service
-    let user_repo: Arc<dyn crate::feature::user::repository::UserRepository> =
-        Arc::new(crate::feature::user::repository::UserRepositoryImpl::new());
+    // Create repositories
+    let user_repo: Arc<dyn UserRepository> = Arc::new(UserRepositoryImpl::new());
+    let user_profile_repo: Arc<dyn UserProfileRepository> =
+        Arc::new(UserProfileRepositoryImpl::new());
+    let auth_method_repo = Arc::new(AuthMethodRepositoryImpl::new());
+    let session_repo = Arc::new(SessionRepositoryImpl::new());
+
+    // Create services
+    let auth_method_service = AuthMethodService::new(db.clone(), auth_method_repo);
+    let session_service = SessionService::new(db.clone(), session_repo);
 
     let auth_service = AuthService::new(
         db.clone(),
         Arc::clone(&user_repo),
+        Arc::clone(&user_profile_repo),
+        auth_method_service,
         Arc::new(config.clone()),
         None,
+        session_service,
     );
 
-    let create_user = CreateUser {
-        email: admin_email.clone(),
-        username: Some(admin_username.clone()),
-        name: admin_name,
-        password: admin_password.clone(),
-    };
-
-    let admin_id = match auth_service.register(create_user).await {
+    // Create admin user using the new register signature
+    let admin_id = match auth_service
+        .register(
+            &admin_email,
+            Some(&admin_username),
+            &admin_password,
+            Some(&admin_name),
+        )
+        .await
+    {
         Ok((auth_response, _)) => {
             // Promote to admin by updating role directly in DB
             sqlx::query("UPDATE users SET role = 'admin' WHERE id = $1")

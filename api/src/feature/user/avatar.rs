@@ -83,8 +83,11 @@ pub async fn upload_avatar(
     let ext = extension_for(&content_type).unwrap_or("bin");
 
     // --- 4. Delete old avatar if present ---
-    if let Ok(Some(user)) = state.user_repo.find_by_id(state.db.pool(), user_id).await
-        && let Some(old_url) = user.avatar_url
+    if let Ok(Some(profile)) = state
+        .user_profile_repo
+        .find_by_user_id(state.db.pool(), user_id)
+        .await
+        && let Some(old_url) = profile.avatar_url
     {
         // Derive the storage key from the URL: strip the base_url prefix
         let base = state.config.upload.base_url.trim_end_matches('/');
@@ -107,8 +110,15 @@ pub async fn upload_avatar(
     // --- 6. Persist the public URL ---
     let avatar_url = state.storage.public_url(&key);
     state
-        .user_repo
-        .update_avatar_url(state.db.pool(), user_id, &avatar_url)
+        .user_profile_repo
+        .update(
+            state.db.pool(),
+            user_id,
+            None,
+            Some(&avatar_url),
+            None,
+            None,
+        )
         .await
         .map_err(|e| ApiError::default().log_only(e))?;
 
@@ -124,20 +134,20 @@ pub async fn delete_avatar(
 ) -> ApiResult<serde_json::Value> {
     let user_id = auth_user.user_id;
 
-    // --- 1. Fetch user to get old avatar ---
-    let user = state
-        .user_repo
-        .find_by_id(state.db.pool(), user_id)
+    // --- 1. Fetch profile to get old avatar ---
+    let profile = state
+        .user_profile_repo
+        .find_by_user_id(state.db.pool(), user_id)
         .await
         .map_err(|e| ApiError::default().log_only(e))?
         .ok_or_else(|| {
             ApiError::default()
                 .with_code(axum::http::StatusCode::NOT_FOUND)
-                .with_message("User not found")
+                .with_message("User profile not found")
         })?;
 
     // --- 2. Delete from storage if exists ---
-    if let Some(old_url) = user.avatar_url {
+    if let Some(old_url) = profile.avatar_url {
         let base = state.config.upload.base_url.trim_end_matches('/');
         if let Some(key) = old_url
             .strip_prefix(base)
@@ -149,8 +159,8 @@ pub async fn delete_avatar(
 
     // --- 3. Update DB: clear avatar_url ---
     state
-        .user_repo
-        .update_avatar_url(state.db.pool(), user_id, "")
+        .user_profile_repo
+        .update(state.db.pool(), user_id, None, Some(""), None, None)
         .await
         .map_err(|e| ApiError::default().log_only(e))?;
 

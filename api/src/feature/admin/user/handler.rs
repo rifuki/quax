@@ -22,14 +22,17 @@ pub async fn list_users(State(state): State<AppState>) -> ApiResult<Vec<AdminUse
 
     let user_responses: Vec<AdminUserResponse> = users
         .into_iter()
-        .map(|u| AdminUserResponse {
-            id: u.id,
-            email: u.email,
-            username: u.username,
-            name: u.name,
-            role: u.role,
-            created_at: u.created_at,
-            updated_at: u.updated_at,
+        .map(|u| {
+            let name = u.username.clone().unwrap_or_else(|| u.email.clone());
+            AdminUserResponse {
+                id: u.id,
+                email: u.email,
+                username: u.username,
+                name,
+                role: u.role,
+                created_at: u.created_at,
+                updated_at: u.updated_at,
+            }
         })
         .collect();
 
@@ -78,12 +81,13 @@ pub async fn update_user_role(
                 .with_message("User not found")
         })?;
 
+    let name = user.username.clone().unwrap_or_else(|| user.email.clone());
     Ok(ApiSuccess::default()
         .with_data(AdminUserResponse {
             id: user.id,
             email: user.email,
             username: user.username,
-            name: user.name,
+            name,
             role: user.role,
             created_at: user.created_at,
             updated_at: user.updated_at,

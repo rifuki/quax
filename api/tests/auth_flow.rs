@@ -37,7 +37,7 @@ async fn test_register_duplicate_email() {
     post_json(app.clone(), "/api/v1/auth/register", &payload).await;
     let (status, body) = post_json(app, "/api/v1/auth/register", &payload).await;
 
-    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(status, StatusCode::CONFLICT);
     assert_eq!(body["success"], false);
     assert_eq!(body["error_code"], "AUTH_002");
 }

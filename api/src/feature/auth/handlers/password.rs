@@ -2,7 +2,10 @@ use axum::{Extension, Json, extract::State, http::StatusCode};
 use validator::Validate;
 
 use crate::{
-    feature::auth::types::{AuthUser, ChangePasswordRequest, hash_password},
+    feature::auth::{
+        auth_method::AuthProvider,
+        types::{AuthUser, ChangePasswordRequest, hash_password},
+    },
     infrastructure::web::response::{
         ApiError, ApiResult, ApiSuccess,
         codes::{auth as auth_codes, validation as val_codes},
@@ -32,41 +35,40 @@ pub async fn change_password(
             .with_message("New password must be at least 8 characters"));
     }
 
-    // Get user from database
-    let user = state
-        .user_repo
-        .find_by_id(state.db.pool(), auth_user.user_id)
+    // Find password auth method
+    let auth_method = state
+        .auth_service
+        .auth_method_service()
+        .find_by_user_and_provider(auth_user.user_id, AuthProvider::Password)
         .await
         .map_err(|_| {
             ApiError::default()
                 .with_code(StatusCode::INTERNAL_SERVER_ERROR)
                 .with_error_code(auth_codes::INTERNAL_ERROR)
-                .with_message("Failed to fetch user")
+                .with_message("Failed to fetch auth method")
         })?
         .ok_or_else(|| {
             ApiError::default()
-                .with_code(StatusCode::NOT_FOUND)
-                .with_error_code(auth_codes::USER_NOT_FOUND)
-                .with_message("User not found")
+                .with_code(StatusCode::BAD_REQUEST)
+                .with_error_code(auth_codes::INVALID_CREDENTIALS)
+                .with_message("Password auth not found for this user")
         })?;
 
     // Verify current password
-    use argon2::{Argon2, PasswordHash, PasswordVerifier};
-    let parsed_hash = PasswordHash::new(&user.password_hash).map_err(|_| {
-        ApiError::default()
-            .with_code(StatusCode::INTERNAL_SERVER_ERROR)
-            .with_error_code(auth_codes::INTERNAL_ERROR)
-            .with_message("Invalid password hash")
-    })?;
-
-    Argon2::default()
-        .verify_password(req.current_password.as_bytes(), &parsed_hash)
+    if !auth_method
+        .verify_password(&req.current_password)
         .map_err(|_| {
             ApiError::default()
-                .with_code(StatusCode::UNAUTHORIZED)
-                .with_error_code(auth_codes::INVALID_CREDENTIALS)
-                .with_message("Current password is incorrect")
-        })?;
+                .with_code(StatusCode::INTERNAL_SERVER_ERROR)
+                .with_error_code(auth_codes::INTERNAL_ERROR)
+                .with_message("Invalid password hash")
+        })?
+    {
+        return Err(ApiError::default()
+            .with_code(StatusCode::UNAUTHORIZED)
+            .with_error_code(auth_codes::INVALID_CREDENTIALS)
+            .with_message("Current password is incorrect"));
+    }
 
     // Hash new password
     let new_password_hash = hash_password(&req.new_password).map_err(|_| {
@@ -78,8 +80,9 @@ pub async fn change_password(
 
     // Update password in database
     state
-        .user_repo
-        .update_password(state.db.pool(), auth_user.user_id, &new_password_hash)
+        .auth_service
+        .auth_method_service()
+        .update_password(auth_method.id, &new_password_hash)
         .await
         .map_err(|_| {
             ApiError::default()

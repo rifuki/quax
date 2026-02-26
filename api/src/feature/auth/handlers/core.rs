@@ -5,12 +5,12 @@ use validator::Validate;
 use crate::{
     feature::auth::{
         repository::AuthError,
+        session::DeviceInfo,
         types::{
             AuthResponse, AuthUser, LoginCredentials, RegisterRequest, TokenResponse, UserResponse,
         },
         utils::REFRESH_TOKEN_COOKIE,
     },
-    feature::user::CreateUser,
     infrastructure::web::response::{
         ApiError, ApiResult, ApiSuccess,
         codes::{auth as auth_codes, validation as val_codes},
@@ -30,24 +30,29 @@ pub async fn register(
             .with_message(format!("Validation error: {}", e)));
     }
 
-    let create_user = CreateUser {
-        email: req.email,
-        username: req.username,
-        name: req.name,
-        password: req.password,
-    };
-
-    let (response, refresh_cookie) =
-        state
-            .auth_service
-            .register(create_user)
-            .await
-            .map_err(|e: AuthError| {
-                ApiError::default()
-                    .with_code(StatusCode::BAD_REQUEST)
-                    .with_error_code(auth_codes::EMAIL_EXISTS)
-                    .with_message(e.to_string())
-            })?;
+    let (response, refresh_cookie) = state
+        .auth_service
+        .register(
+            &req.email,
+            req.username.as_deref(),
+            &req.password,
+            req.name.as_deref(),
+        )
+        .await
+        .map_err(|e: AuthError| match e {
+            AuthError::EmailExists => ApiError::default()
+                .with_code(StatusCode::CONFLICT)
+                .with_error_code(auth_codes::EMAIL_EXISTS)
+                .with_message("Email already registered"),
+            AuthError::UsernameExists => ApiError::default()
+                .with_code(StatusCode::CONFLICT)
+                .with_error_code(auth_codes::EMAIL_EXISTS)
+                .with_message("Username already taken"),
+            _ => ApiError::default()
+                .with_code(StatusCode::INTERNAL_SERVER_ERROR)
+                .with_error_code(auth_codes::INTERNAL_ERROR)
+                .with_message("Registration failed"),
+        })?;
 
     Ok(ApiSuccess::default()
         .with_code(StatusCode::CREATED)
@@ -60,30 +65,42 @@ pub async fn register(
 pub async fn login(
     State(state): State<AppState>,
     jar: CookieJar,
+    headers: axum::http::HeaderMap,
     Json(creds): Json<LoginCredentials>,
 ) -> ApiResult<AuthResponse> {
     // Check existing refresh token to avoid concurrent login issues
     if let Some(_cookie) = jar.get(REFRESH_TOKEN_COOKIE) {
-        // Clear existing cookie - login will generate a new token
-        // Don't need to blacklist here - just clear cookie
         let _ = state.auth_service.logout(None, None).await;
     }
 
-    let (response, refresh_cookie) =
-        state
-            .auth_service
-            .login(creds)
-            .await
-            .map_err(|e: AuthError| match e {
-                AuthError::InvalidCredentials => ApiError::default()
-                    .with_code(StatusCode::UNAUTHORIZED)
-                    .with_error_code(auth_codes::INVALID_CREDENTIALS)
-                    .with_message("Invalid email or password"),
-                _ => ApiError::default()
-                    .with_code(StatusCode::INTERNAL_SERVER_ERROR)
-                    .with_error_code(auth_codes::INTERNAL_ERROR)
-                    .with_message("Login failed"),
-            })?;
+    // Extract device info from headers
+    let user_agent = headers
+        .get("user-agent")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("Unknown");
+
+    let ip_address = headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .or_else(|| headers.get("x-real-ip").and_then(|v| v.to_str().ok()))
+        .unwrap_or("0.0.0.0");
+
+    let device_info = DeviceInfo::from_user_agent(user_agent, ip_address);
+
+    let (response, refresh_cookie) = state
+        .auth_service
+        .login(&creds.email, &creds.password, Some(&device_info))
+        .await
+        .map_err(|e: AuthError| match e {
+            AuthError::InvalidCredentials => ApiError::default()
+                .with_code(StatusCode::UNAUTHORIZED)
+                .with_error_code(auth_codes::INVALID_CREDENTIALS)
+                .with_message("Invalid email or password"),
+            _ => ApiError::default()
+                .with_code(StatusCode::INTERNAL_SERVER_ERROR)
+                .with_error_code(auth_codes::INTERNAL_ERROR)
+                .with_message("Login failed"),
+        })?;
 
     Ok(ApiSuccess::default()
         .with_data(response)
@@ -108,10 +125,14 @@ pub async fn refresh(State(state): State<AppState>, jar: CookieJar) -> ApiResult
         .refresh_token(refresh_token)
         .await
         .map_err(|e: AuthError| match e {
+            AuthError::SessionExpired => ApiError::default()
+                .with_code(StatusCode::UNAUTHORIZED)
+                .with_error_code(auth_codes::TOKEN_EXPIRED)
+                .with_message("Session expired, please login again"),
             AuthError::InvalidCredentials => ApiError::default()
                 .with_code(StatusCode::UNAUTHORIZED)
                 .with_error_code(auth_codes::TOKEN_EXPIRED)
-                .with_message("Refresh token expired"),
+                .with_message("Invalid or expired refresh token"),
             _ => ApiError::default()
                 .with_code(StatusCode::UNAUTHORIZED)
                 .with_error_code(auth_codes::TOKEN_INVALID)
@@ -125,18 +146,13 @@ pub async fn refresh(State(state): State<AppState>, jar: CookieJar) -> ApiResult
 }
 
 /// POST /api/v1/auth/logout
-///
-/// Blacklists both access token and refresh token (if Redis is available).
-/// This provides immediate logout - tokens become invalid even before expiry.
 pub async fn logout(
     State(state): State<AppState>,
     jar: CookieJar,
     headers: axum::http::HeaderMap,
 ) -> ApiResult<()> {
-    // Extract refresh token from cookie
     let refresh_token = jar.get(REFRESH_TOKEN_COOKIE).map(|c| c.value().to_string());
 
-    // Extract access token from Authorization header
     let access_token = headers
         .get("Authorization")
         .and_then(|v| v.to_str().ok())
@@ -157,9 +173,9 @@ pub async fn me(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
 ) -> ApiResult<UserResponse> {
-    let user = state
-        .user_repo
-        .find_by_id(state.db.pool(), auth_user.user_id)
+    let user_with_profile = state
+        .auth_service
+        .get_user_with_profile(auth_user.user_id)
         .await
         .map_err(|e| {
             ApiError::default()
@@ -174,14 +190,13 @@ pub async fn me(
                 .with_message("User not found")
         })?;
 
-    let user_role = user.role().to_string();
     let response = UserResponse {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        name: user.name,
-        avatar_url: user.avatar_url.clone(),
-        role: user_role,
+        id: user_with_profile.id,
+        email: user_with_profile.email,
+        username: user_with_profile.username,
+        name: user_with_profile.full_name.unwrap_or_default(),
+        avatar_url: user_with_profile.avatar_url,
+        role: user_with_profile.role,
     };
 
     Ok(ApiSuccess::default()

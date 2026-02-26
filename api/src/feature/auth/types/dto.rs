@@ -22,7 +22,7 @@ pub struct RegisterRequest {
     pub username: Option<String>,
 
     #[validate(length(min = 3, message = "Name must be at least 3 characters"))]
-    pub name: String,
+    pub name: Option<String>,
 
     #[validate(length(min = 6, message = "Password must be at least 6 characters"))]
     pub password: String,
