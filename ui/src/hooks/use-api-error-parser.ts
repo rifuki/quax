@@ -37,10 +37,12 @@ export function useApiErrorParser(
   error: unknown,
   options?: ParsedErrorOptions
 ): ParsedError | null {
+  // Destructure options to avoid object reference issues
+  const { defaultMessage: defaultMsgOverride, appErrorMessageOverride } = options ?? {};
+  
   return useMemo(() => {
     // Default values
-    const defaultMessage =
-      options?.defaultMessage ?? "An unexpected error occurred";
+    const defaultMessage = defaultMsgOverride ?? "An unexpected error occurred";
 
     let message = defaultMessage;
     let type: ParsedError["type"] = "unknown";
@@ -64,7 +66,7 @@ export function useApiErrorParser(
       details = error.details;
       timestamp = error.timestamp;
 
-      const overrideMessage = options?.appErrorMessageOverride?.(error);
+      const overrideMessage = appErrorMessageOverride?.(error);
 
       if (overrideMessage) {
         message = overrideMessage;
@@ -99,5 +101,5 @@ export function useApiErrorParser(
       hasErrorCode: (checkCode: string) => errorCode === checkCode,
       originalError: error,
     };
-  }, [error, options?.defaultMessage, options?.appErrorMessageOverride]);
+  }, [error, defaultMsgOverride, appErrorMessageOverride]);
 }

@@ -56,7 +56,7 @@ export function ImageUploadModal({
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
   const acceptedExtensions = acceptedTypes.map(t => t.split('/')[1]).join(', ');
 
-  const validateFile = (file: File): string | null => {
+  const validateFile = useCallback((file: File): string | null => {
     if (!acceptedTypes.includes(file.type)) {
       return `Invalid file type. Accepted: ${acceptedExtensions}`;
     }
@@ -64,16 +64,16 @@ export function ImageUploadModal({
       return `File too large. Maximum size: ${maxSizeMB}MB`;
     }
     return null;
-  };
+  }, [acceptedTypes, acceptedExtensions, maxSizeBytes, maxSizeMB]);
 
-  const createPreview = (file: File): Promise<string> => {
+  const createPreview = useCallback((file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
-  };
+  }, []);
 
   const handleFileSelect = useCallback(async (selectedFile: File) => {
     setErrorMessage(null);
@@ -96,7 +96,8 @@ export function ImageUploadModal({
       setErrorMessage('Failed to preview image');
       if (!previewUrl) setStatus('idle');
     }
-  }, [maxSizeBytes, acceptedTypes, previewUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maxSizeMB, acceptedTypes, previewUrl, validateFile, createPreview]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];

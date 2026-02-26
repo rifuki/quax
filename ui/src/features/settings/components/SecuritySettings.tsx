@@ -41,9 +41,10 @@ export function SecuritySettings() {
             setCurrentPassword("");
             setNewPassword("");
             setConfirmPassword("");
-        } catch (error: any) {
+        } catch (error: unknown) {
             // Because api.ts interceptor unwraps the response data, error is actually an ApiErrorResponse
-            if (error.error_code === 'AUTH/INVALID_CREDENTIALS' || error.error_code === 'auth/invalid_credentials' || error.message?.toLowerCase().includes("current password")) {
+            const apiError = error as { error_code?: string; message?: string };
+            if (apiError.error_code === 'AUTH/INVALID_CREDENTIALS' || apiError.error_code === 'auth/invalid_credentials' || apiError.message?.toLowerCase().includes("current password")) {
                 setCurrentPasswordError("Current password is incorrect");
             } else {
                 toast.error("Failed to change password. Please try again.");

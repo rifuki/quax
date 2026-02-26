@@ -30,6 +30,7 @@ export function TerminalBlock() {
             </div>
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={() => setActiveTab("api")}
                 className={`px-3 py-2.5 text-xs font-mono transition-colors border-b-2 ${activeTab === "api"
                   ? "text-zinc-100 border-miku-primary"
@@ -39,6 +40,7 @@ export function TerminalBlock() {
                 terminal 1 (api)
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab("ui")}
                 className={`px-3 py-2.5 text-xs font-mono transition-colors border-b-2 ${activeTab === "ui"
                   ? "text-zinc-100 border-miku-secondary"

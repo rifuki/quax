@@ -7,6 +7,9 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
+// Debug logging - only in development
+const debug = import.meta.env.DEV ? console.log : () => {};
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const { login, logout, updateToken } = useAuthActions();
   const [isChecking, setIsChecking] = useState(true);
@@ -15,36 +18,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
     let cancelled = false;
 
     const restoreSession = async () => {
-      console.log("[AuthProvider] Starting auth check...");
+      debug("[AuthProvider] Starting auth check...");
 
       try {
-        console.log("[AuthProvider] Calling refreshToken...");
+        debug("[AuthProvider] Calling refreshToken...");
         const accessToken = await authService.refreshToken();
 
         if (cancelled) return;
-        console.log("[AuthProvider] refreshToken success:", accessToken.substring(0, 20) + "...");
+        debug("[AuthProvider] refreshToken success");
 
         updateToken(accessToken);
-        console.log("[AuthProvider] Token saved to Zustand");
 
-        console.log("[AuthProvider] Calling getMe...");
+        debug("[AuthProvider] Calling getMe...");
         const user = await authService.getMe();
 
         if (cancelled) return;
-        console.log("[AuthProvider] getMe success:", user.email);
+        debug("[AuthProvider] getMe success:", user.email);
 
         login(accessToken, user);
-        console.log("[AuthProvider] Login complete!");
+        debug("[AuthProvider] Login complete!");
 
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (!cancelled) {
-          console.error("[AuthProvider] Auth failed:", error.message || error);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          // Keep error log for production debugging
+          console.error("[AuthProvider] Auth failed:", errorMessage);
           logout();
         }
       } finally {
         if (!cancelled) {
           setIsChecking(false);
-          console.log("[AuthProvider] Auth check complete");
+          debug("[AuthProvider] Auth check complete");
         }
       }
     };

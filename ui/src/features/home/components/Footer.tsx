@@ -6,7 +6,7 @@ export function Footer() {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <img src="./favicon.svg" />
+            <img src="./favicon.svg" alt="Quax Logo" className="w-6 h-6" />
             <span className="text-xl font-bold text-foreground">Quax</span>
           </div>
           <p className="text-sm text-muted-foreground">

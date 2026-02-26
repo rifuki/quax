@@ -14,14 +14,12 @@ export function SettingsLayout() {
     const navigate = useNavigate();
     const user = useAuthUser();
 
-    const goBack = () => {
-        navigate({ to: user?.role === 'admin' ? '/app/admin' : '/app' });
-    };
-
     // Handle ESC key to exit settings
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') goBack();
+            if (e.key === 'Escape') {
+                navigate({ to: user?.role === 'admin' ? '/app/admin' : '/app' });
+            }
         };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
@@ -65,7 +63,9 @@ export function SettingsLayout() {
                 {/* Close Button */}
                 <div className="fixed top-14 right-8 lg:right-16 hidden sm:block z-50">
                     <button
-                        onClick={goBack}
+                        type="button"
+                        aria-label="Close settings"
+                        onClick={() => navigate({ to: user?.role === 'admin' ? '/app/admin' : '/app' })}
                         className="group flex flex-col items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
                     >
                         <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-muted-foreground/40 group-hover:bg-muted/50 transition-colors">
