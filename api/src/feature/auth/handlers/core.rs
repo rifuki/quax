@@ -65,7 +65,7 @@ pub async fn login(
     // Check existing refresh token to avoid concurrent login issues
     if let Some(_cookie) = jar.get(REFRESH_TOKEN_COOKIE) {
         // Clear existing cookie - login will generate a new token
-        let _ = state.auth_service.logout();
+        let _ = state.auth_service.logout(None).await;
     }
 
     let (response, refresh_cookie) =
@@ -125,9 +125,9 @@ pub async fn refresh(State(state): State<AppState>, jar: CookieJar) -> ApiResult
 
 /// POST /api/v1/auth/logout
 pub async fn logout(State(state): State<AppState>, jar: CookieJar) -> ApiResult<()> {
-    let _ = jar.get(REFRESH_TOKEN_COOKIE);
+    let refresh_token = jar.get(REFRESH_TOKEN_COOKIE).map(|c| c.value().to_string());
 
-    let clear_cookie = crate::feature::auth::utils::cookie::create_cleared_cookie(&state.config);
+    let clear_cookie = state.auth_service.logout(refresh_token.as_deref()).await;
 
     Ok(ApiSuccess::default()
         .with_cookie(clear_cookie)

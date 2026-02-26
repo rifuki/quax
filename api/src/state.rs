@@ -61,21 +61,10 @@ impl AppState {
             Arc::new(AdminUserRepositoryImpl::new());
         let stats_repository: Arc<dyn StatsRepository> = Arc::new(StatsRepositoryImpl::new());
 
-        let auth_service = Arc::new(AuthService::new(
-            db.clone(),
-            Arc::clone(&user_repo),
-            Arc::new(config.clone()),
-        ));
-
-        let stats_service = Arc::new(StatsService::new(stats_repository));
-
-        let storage: Arc<dyn StorageProvider> = Arc::new(LocalStorage::new(
-            &config.upload.upload_dir,
-            &config.upload.base_url,
-        ));
-
         // Initialize Redis if configured
-        let session_blacklist = if let Some(ref _redis_url) = config.redis_url {
+        let session_blacklist: Option<Arc<dyn SessionBlacklist>> = if let Some(ref _redis_url) =
+            config.redis_url
+        {
             match create_redis_pool(&config).await {
                 Ok(pool) => {
                     tracing::info!("✅ Redis session blacklist enabled");
@@ -90,6 +79,20 @@ impl AppState {
             tracing::info!("ℹ️  Redis not configured (session blacklist disabled)");
             None
         };
+
+        let auth_service = Arc::new(AuthService::new(
+            db.clone(),
+            Arc::clone(&user_repo),
+            Arc::new(config.clone()),
+            session_blacklist.clone(),
+        ));
+
+        let stats_service = Arc::new(StatsService::new(stats_repository));
+
+        let storage: Arc<dyn StorageProvider> = Arc::new(LocalStorage::new(
+            &config.upload.upload_dir,
+            &config.upload.base_url,
+        ));
 
         Ok(Self {
             config: Arc::new(config),
@@ -114,10 +117,14 @@ impl AppState {
             Arc::new(AdminUserRepositoryImpl::new());
         let stats_repository: Arc<dyn StatsRepository> = Arc::new(StatsRepositoryImpl::new());
 
+        // No Redis in tests
+        let session_blacklist: Option<Arc<dyn SessionBlacklist>> = None;
+
         let auth_service = Arc::new(AuthService::new(
             db.clone(),
             Arc::clone(&user_repo),
             Arc::new(config.clone()),
+            session_blacklist.clone(),
         ));
 
         let stats_service = Arc::new(StatsService::new(stats_repository));

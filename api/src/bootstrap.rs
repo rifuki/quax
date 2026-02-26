@@ -54,8 +54,12 @@ pub async fn bootstrap(db: &Database, config: &Config) -> eyre::Result<()> {
     let user_repo: Arc<dyn crate::feature::user::repository::UserRepository> =
         Arc::new(crate::feature::user::repository::UserRepositoryImpl::new());
 
-    let auth_service =
-        AuthService::new(db.clone(), Arc::clone(&user_repo), Arc::new(config.clone()));
+    let auth_service = AuthService::new(
+        db.clone(),
+        Arc::clone(&user_repo),
+        Arc::new(config.clone()),
+        None,
+    );
 
     let create_user = CreateUser {
         email: admin_email.clone(),

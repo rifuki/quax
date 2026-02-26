@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use axum_extra::extract::cookie::Cookie;
+
 use crate::{
     feature::{
         auth::{
@@ -12,9 +14,11 @@ use crate::{
         },
         user::{CreateUser, repository::UserRepository},
     },
-    infrastructure::{config::Config, persistence::Database},
+    infrastructure::{
+        config::Config,
+        persistence::{Database, redis_trait::SessionBlacklist},
+    },
 };
-use axum_extra::extract::cookie::Cookie;
 
 /// Auth service with JWT
 #[derive(Clone)]
@@ -22,14 +26,21 @@ pub struct AuthService {
     db: Database,
     user_repo: Arc<dyn UserRepository>,
     config: Arc<Config>,
+    session_blacklist: Option<Arc<dyn SessionBlacklist>>,
 }
 
 impl AuthService {
-    pub fn new(db: Database, user_repo: Arc<dyn UserRepository>, config: Arc<Config>) -> Self {
+    pub fn new(
+        db: Database,
+        user_repo: Arc<dyn UserRepository>,
+        config: Arc<Config>,
+        session_blacklist: Option<Arc<dyn SessionBlacklist>>,
+    ) -> Self {
         Self {
             db,
             user_repo,
             config,
+            session_blacklist,
         }
     }
 
@@ -116,12 +127,11 @@ impl AuthService {
 
     /// Refresh access token with rotation
     ///
-    /// TODO: Implement refresh token blacklist for one-time use
-    /// Currently, old refresh token remains valid until expiration (7 days)
-    /// This is acceptable for most apps, but for higher security:
-    /// 1. Inject session_blacklist into AuthService
-    /// 2. Blacklist old refresh token jti after validation
-    /// 3. Return new token pair
+    /// Security features:
+    /// 1. Validates the refresh token signature and expiry
+    /// 2. Checks if token is blacklisted (if Redis is available)
+    /// 3. Blacklists the old refresh token (one-time use)
+    /// 4. Generates new token pair (rotation)
     pub async fn refresh_token(
         &self,
         refresh_token: &str,
@@ -131,11 +141,36 @@ impl AuthService {
 
         let user_id = extract_user_id(&claims).map_err(|_| AuthError::InvalidCredentials)?;
 
+        // Check if token is blacklisted (if Redis available)
+        if let Some(ref blacklist) = self.session_blacklist {
+            let is_blacklisted = blacklist
+                .is_blacklisted(&claims.jti)
+                .await
+                .map_err(|_| AuthError::InvalidCredentials)?;
+
+            if is_blacklisted {
+                tracing::warn!(
+                    "Attempted to use blacklisted refresh token - possible token reuse attack"
+                );
+                return Err(AuthError::InvalidCredentials);
+            }
+        }
+
         let user = self
             .user_repo
             .find_by_id(self.db.pool(), user_id)
             .await?
             .ok_or(AuthError::InvalidCredentials)?;
+
+        // Blacklist the old refresh token (one-time use)
+        if let Some(ref blacklist) = self.session_blacklist {
+            let expires_at = claims.exp as i64;
+            if let Err(e) = blacklist.blacklist_session(&claims.jti, expires_at).await {
+                tracing::error!("Failed to blacklist refresh token: {}", e);
+                // Continue anyway - better UX than failing the refresh
+                // But log for monitoring
+            }
+        }
 
         // Re-read role from DB so role changes take effect at next refresh
         let roles = vec![user.role()];
@@ -143,6 +178,8 @@ impl AuthService {
             create_token_pair(user.id, &user.email, &roles).map_err(|_| AuthError::HashError)?;
 
         let refresh_cookie = create_refresh_cookie(&tokens.refresh_token, &self.config);
+
+        tracing::debug!("Refresh token rotated for user: {}", user_id);
 
         Ok((
             TokenResponse {
@@ -153,9 +190,20 @@ impl AuthService {
         ))
     }
 
-    /// Logout — clears refresh token cookie
-    /// Note: JWT access tokens are stateless, they expire naturally
-    pub fn logout(&self) -> Cookie<'static> {
+    /// Logout — clears refresh token cookie and blacklists the token
+    pub async fn logout(&self, refresh_token: Option<&str>) -> Cookie<'static> {
+        // Blacklist the refresh token if provided and Redis available
+        if let (Some(token), Some(blacklist)) = (refresh_token, self.session_blacklist.as_ref()) {
+            if let Ok(claims) = validate_refresh_token(token) {
+                let expires_at = claims.exp as i64;
+                if let Err(e) = blacklist.blacklist_session(&claims.jti, expires_at).await {
+                    tracing::error!("Failed to blacklist token during logout: {}", e);
+                } else {
+                    tracing::debug!("Token blacklisted during logout for jti: {}", claims.jti);
+                }
+            }
+        }
+
         create_cleared_cookie(&self.config)
     }
 }
