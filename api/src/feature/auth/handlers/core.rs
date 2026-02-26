@@ -65,7 +65,8 @@ pub async fn login(
     // Check existing refresh token to avoid concurrent login issues
     if let Some(_cookie) = jar.get(REFRESH_TOKEN_COOKIE) {
         // Clear existing cookie - login will generate a new token
-        let _ = state.auth_service.logout(None).await;
+        // Don't need to blacklist here - just clear cookie
+        let _ = state.auth_service.logout(None, None).await;
     }
 
     let (response, refresh_cookie) =
@@ -97,7 +98,7 @@ pub async fn refresh(State(state): State<AppState>, jar: CookieJar) -> ApiResult
         .ok_or_else(|| {
             ApiError::default()
                 .with_code(StatusCode::UNAUTHORIZED)
-                .with_error_code(auth_codes::UNAUTHORIZED)
+                .with_error_code(auth_codes::TOKEN_INVALID)
                 .with_message("Refresh token not found")
         })?
         .value();
@@ -124,10 +125,27 @@ pub async fn refresh(State(state): State<AppState>, jar: CookieJar) -> ApiResult
 }
 
 /// POST /api/v1/auth/logout
-pub async fn logout(State(state): State<AppState>, jar: CookieJar) -> ApiResult<()> {
+///
+/// Blacklists both access token and refresh token (if Redis is available).
+/// This provides immediate logout - tokens become invalid even before expiry.
+pub async fn logout(
+    State(state): State<AppState>,
+    jar: CookieJar,
+    headers: axum::http::HeaderMap,
+) -> ApiResult<()> {
+    // Extract refresh token from cookie
     let refresh_token = jar.get(REFRESH_TOKEN_COOKIE).map(|c| c.value().to_string());
 
-    let clear_cookie = state.auth_service.logout(refresh_token.as_deref()).await;
+    // Extract access token from Authorization header
+    let access_token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "));
+
+    let clear_cookie = state
+        .auth_service
+        .logout(refresh_token.as_deref(), access_token)
+        .await;
 
     Ok(ApiSuccess::default()
         .with_cookie(clear_cookie)
@@ -143,11 +161,11 @@ pub async fn me(
         .user_repo
         .find_by_id(state.db.pool(), auth_user.user_id)
         .await
-        .map_err(|_| {
+        .map_err(|e| {
             ApiError::default()
                 .with_code(StatusCode::INTERNAL_SERVER_ERROR)
                 .with_error_code(auth_codes::INTERNAL_ERROR)
-                .with_message("Failed to fetch user")
+                .with_message(format!("Database error: {}", e))
         })?
         .ok_or_else(|| {
             ApiError::default()
@@ -159,9 +177,9 @@ pub async fn me(
     let user_role = user.role().to_string();
     let response = UserResponse {
         id: user.id,
-        email: user.email.clone(),
-        username: user.username.clone(),
-        name: user.name.clone(),
+        email: user.email,
+        username: user.username,
+        name: user.name,
         avatar_url: user.avatar_url.clone(),
         role: user_role,
     };

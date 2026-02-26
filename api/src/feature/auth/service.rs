@@ -190,16 +190,41 @@ impl AuthService {
         ))
     }
 
-    /// Logout — clears refresh token cookie and blacklists the token
-    pub async fn logout(&self, refresh_token: Option<&str>) -> Cookie<'static> {
-        // Blacklist the refresh token if provided and Redis available
+    /// Logout — clears refresh token cookie and blacklists both tokens
+    ///
+    /// Blacklists both access token and refresh token (if Redis available).
+    /// This provides immediate logout even before token expiry.
+    pub async fn logout(
+        &self,
+        refresh_token: Option<&str>,
+        access_token: Option<&str>,
+    ) -> Cookie<'static> {
+        // Blacklist the refresh token if provided
         if let (Some(token), Some(blacklist)) = (refresh_token, self.session_blacklist.as_ref()) {
             if let Ok(claims) = validate_refresh_token(token) {
                 let expires_at = claims.exp as i64;
                 if let Err(e) = blacklist.blacklist_session(&claims.jti, expires_at).await {
-                    tracing::error!("Failed to blacklist token during logout: {}", e);
+                    tracing::error!("Failed to blacklist refresh token during logout: {}", e);
                 } else {
-                    tracing::debug!("Token blacklisted during logout for jti: {}", claims.jti);
+                    tracing::debug!(
+                        "Refresh token blacklisted during logout for jti: {}",
+                        claims.jti
+                    );
+                }
+            }
+        }
+
+        // Blacklist the access token if provided
+        if let (Some(token), Some(blacklist)) = (access_token, self.session_blacklist.as_ref()) {
+            if let Ok(claims) = crate::feature::auth::utils::validate_access_token(token) {
+                let expires_at = claims.exp as i64;
+                if let Err(e) = blacklist.blacklist_session(&claims.jti, expires_at).await {
+                    tracing::error!("Failed to blacklist access token during logout: {}", e);
+                } else {
+                    tracing::debug!(
+                        "Access token blacklisted during logout for jti: {}",
+                        claims.jti
+                    );
                 }
             }
         }
