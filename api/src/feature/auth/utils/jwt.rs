@@ -4,7 +4,7 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use uuid::Uuid;
 
-use crate::feature::auth::claims::{Claims, Role, TokenType};
+use crate::feature::auth::types::claims::{Claims, Role, TokenType};
 
 fn access_secret() -> Vec<u8> {
     env::var("JWT_ACCESS_SECRET")

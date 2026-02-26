@@ -1,0 +1,128 @@
+# =============================================================================
+# Local Development Compose
+# =============================================================================
+# Use this for running the entire local stack (DB, Cache, Backend, Frontend)
+# 
+# Commands:
+#   docker compose up -d postgres redis     # DB + Cache only
+#   docker compose up -d                    # Full stack
+#   docker compose --profile dev up -d      # Include frontend dev server
+#
+# =============================================================================
+
+name: quax
+
+services:
+  # ===========================================================================
+  # Database
+  # ===========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: quax-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-quax}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      POSTGRES_DB: ${POSTGRES_DB:-quax_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-quax} -d ${POSTGRES_DB:-quax_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - quax_net
+
+  # ===========================================================================
+  # Cache (Optional - graceful degradation)
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: quax-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - quax_net
+
+  # ===========================================================================
+  # Backend API
+  # ===========================================================================
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: quax-api
+    env_file:
+      - ./api/.env
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+        required: false
+    networks:
+      - quax_net
+
+  # ===========================================================================
+  # Frontend (Production Build)
+  # ===========================================================================
+  # Uncomment to serve frontend via nginx in Docker
+  # ui:
+  #   build:
+  #     context: ./ui
+  #     dockerfile: Dockerfile
+  #   container_name: quax-ui
+  #   ports:
+  #     - "3000:80"
+  #   depends_on:
+  #     - api
+  #   networks:
+  #     - quax_net
+
+  # ===========================================================================
+  # Reverse Proxy (Caddy)
+  # ===========================================================================
+  # Uncomment for production with HTTPS
+  # caddy:
+  #   image: caddy:2-alpine
+  #   container_name: quax-caddy
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #     - "443:443/udp"
+  #   volumes:
+  #     - ./api/Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddy_data:/data
+  #     - caddy_config:/config
+  #   networks:
+  #     - quax_net
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  quax_net:
+    name: quax_net

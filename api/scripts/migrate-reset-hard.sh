@@ -17,4 +17,4 @@ cargo sqlx migrate run --source migrations --target-version 004
 echo "✅ Database reset complete!"
 echo ""
 echo "🚀 Run: cargo run"
-echo "   Bootstrap akan membuat admin + API key baru"
+echo "   Bootstrap will create new admin + API key"

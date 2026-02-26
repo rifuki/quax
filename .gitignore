@@ -5,6 +5,7 @@ target/
 # Environment
 .env
 .env.local
+.env.deploy
 
 # IDE
 .vscode/

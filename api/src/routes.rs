@@ -30,12 +30,14 @@ pub fn app_routes(state: AppState) -> Router {
         .layer(from_fn(rate_limit_middleware))
         .layer(Extension(auth_limiter));
 
+    // Provide session_blacklist to auth middleware
+    let blacklist = state.session_blacklist.clone();
     let api_routes = Router::new()
         .nest("/auth", auth::auth_routes().merge(auth_sensitive))
         .nest("/users", user::user_routes())
-        .nest("/admin", admin::admin_routes())
-        .nest("/admin/api-keys", admin::api_key_routes())
-
+        .nest("/admin", admin::routes::admin_routes())
+        .nest("/admin/api-keys", admin::api_key::api_key_routes())
+        .layer(Extension(blacklist))  // Inject blacklist for auth middleware
         .layer(from_fn(rate_limit_middleware))
         .layer(Extension(global_limiter));
 

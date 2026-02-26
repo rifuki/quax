@@ -164,6 +164,7 @@ pub struct Config {
     pub is_production: bool,
     pub server: ServerConfig,
     pub database: DatabaseConfig,
+    pub redis_url: Option<String>,
     pub cookie: CookieConfig,
     pub upload: UploadConfig,
 }
@@ -177,11 +178,15 @@ impl Config {
         require_env("JWT_ACCESS_SECRET")?;
         require_env("JWT_REFRESH_SECRET")?;
 
+        // Redis is optional - if not configured, caching features will be disabled
+        let redis_url = env::var("REDIS_URL").ok();
+
         Ok(Self {
             rust_env,
             is_production,
             server: ServerConfig::from_env(),
             database: DatabaseConfig::from_env()?,
+            redis_url,
             cookie: CookieConfig::from_env(is_production),
             upload: UploadConfig::from_env(),
         })

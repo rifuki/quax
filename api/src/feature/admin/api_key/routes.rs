@@ -1,8 +1,4 @@
-use axum::{
-    Router,
-    middleware,
-    routing::{delete, get, patch, post},
-};
+use axum::{Router, middleware, routing::{delete, get, patch, post}};
 
 use crate::{
     infrastructure::web::middleware::{admin_middleware, auth_middleware},

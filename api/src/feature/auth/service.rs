@@ -3,10 +3,9 @@ use std::sync::Arc;
 use crate::{
     feature::{
         auth::{
-            cookie::{create_cleared_cookie, create_refresh_cookie},
-            dto::{AuthResponse, LoginCredentials, TokenResponse, UserResponse},
-            jwt,
             repository::AuthError,
+            types::{AuthResponse, LoginCredentials, TokenResponse, UserResponse},
+            utils::{create_cleared_cookie, create_refresh_cookie, create_token_pair, extract_user_id, validate_refresh_token},
         },
         user::{CreateUser, repository::UserRepository},
     },
@@ -31,28 +30,31 @@ impl AuthService {
         }
     }
 
-    /// Register new user — returns tokens + refresh token cookie
+    /// Register new user
     pub async fn register(
         &self,
-        req: CreateUser,
+        user: CreateUser,
     ) -> Result<(AuthResponse, Cookie<'static>), AuthError> {
-        let user = self.user_repo.create(self.db.pool(), &req).await?;
+        // Hash password and create user
+        let created_user = self.user_repo.create(self.db.pool(), &user).await?;
 
-        let roles = vec![user.role()];
-        let tokens = jwt::create_token_pair(user.id, &user.email, &roles)
+        // Generate tokens
+        let roles = vec![created_user.role()];
+        let tokens = create_token_pair(created_user.id, &created_user.email, &roles)
             .map_err(|_| AuthError::HashError)?;
 
         let refresh_cookie = create_refresh_cookie(&tokens.refresh_token, &self.config);
+        
+        let role = created_user.role().to_string();
 
-        let user_role = user.role().to_string();
         let response = AuthResponse {
             user: UserResponse {
-                id: user.id,
-                email: user.email.clone(),
-                username: user.username.clone(),
-                name: user.name.clone(),
-                avatar_url: user.avatar_url.clone(),
-                role: user_role,
+                id: created_user.id,
+                email: created_user.email,
+                username: created_user.username,
+                name: created_user.name,
+                avatar_url: created_user.avatar_url,
+                role,
             },
             token: TokenResponse {
                 access_token: tokens.access_token,
@@ -63,40 +65,42 @@ impl AuthService {
         Ok((response, refresh_cookie))
     }
 
-    /// Login — returns tokens + refresh token cookie
+    /// Login user
     pub async fn login(
         &self,
-        req: LoginCredentials,
+        creds: LoginCredentials,
     ) -> Result<(AuthResponse, Cookie<'static>), AuthError> {
         let user = self
             .user_repo
-            .find_by_email(self.db.pool(), &req.email)
+            .find_by_email(self.db.pool(), &creds.email)
             .await?
             .ok_or(AuthError::InvalidCredentials)?;
 
-        let valid = user
-            .verify_password(&req.password)
+        // Verify password
+        use argon2::{Argon2, PasswordHash, PasswordVerifier};
+        let parsed_hash = PasswordHash::new(&user.password_hash)
             .map_err(|_| AuthError::HashError)?;
-
-        if !valid {
-            return Err(AuthError::InvalidCredentials);
-        }
+        
+        Argon2::default()
+            .verify_password(creds.password.as_bytes(), &parsed_hash)
+            .map_err(|_| AuthError::InvalidCredentials)?;
 
         let roles = vec![user.role()];
-        let tokens = jwt::create_token_pair(user.id, &user.email, &roles)
+        let tokens = create_token_pair(user.id, &user.email, &roles)
             .map_err(|_| AuthError::HashError)?;
 
         let refresh_cookie = create_refresh_cookie(&tokens.refresh_token, &self.config);
 
-        let user_role = user.role().to_string();
+        let role = user.role().to_string();
+
         let response = AuthResponse {
             user: UserResponse {
                 id: user.id,
-                email: user.email.clone(),
-                username: user.username.clone(),
-                name: user.name.clone(),
-                avatar_url: user.avatar_url.clone(),
-                role: user_role,
+                email: user.email,
+                username: user.username,
+                name: user.name,
+                avatar_url: user.avatar_url,
+                role,
             },
             token: TokenResponse {
                 access_token: tokens.access_token,
@@ -107,15 +111,22 @@ impl AuthService {
         Ok((response, refresh_cookie))
     }
 
-    /// Refresh access token — reads refresh token from caller, returns new tokens + new cookie
+    /// Refresh access token with rotation
+    /// 
+    /// TODO: Implement refresh token blacklist for one-time use
+    /// Currently, old refresh token remains valid until expiration (7 days)
+    /// This is acceptable for most apps, but for higher security:
+    /// 1. Inject session_blacklist into AuthService
+    /// 2. Blacklist old refresh token jti after validation
+    /// 3. Return new token pair
     pub async fn refresh_token(
         &self,
         refresh_token: &str,
     ) -> Result<(TokenResponse, Cookie<'static>), AuthError> {
-        let claims = jwt::validate_refresh_token(refresh_token)
+        let claims = validate_refresh_token(refresh_token)
             .map_err(|_| AuthError::InvalidCredentials)?;
 
-        let user_id = jwt::extract_user_id(&claims).map_err(|_| AuthError::InvalidCredentials)?;
+        let user_id = extract_user_id(&claims).map_err(|_| AuthError::InvalidCredentials)?;
 
         let user = self
             .user_repo
@@ -125,7 +136,7 @@ impl AuthService {
 
         // Re-read role from DB so role changes take effect at next refresh
         let roles = vec![user.role()];
-        let tokens = jwt::create_token_pair(user.id, &user.email, &roles)
+        let tokens = create_token_pair(user.id, &user.email, &roles)
             .map_err(|_| AuthError::HashError)?;
 
         let refresh_cookie = create_refresh_cookie(&tokens.refresh_token, &self.config);
@@ -143,13 +154,5 @@ impl AuthService {
     /// Note: JWT access tokens are stateless, they expire naturally
     pub fn logout(&self) -> Cookie<'static> {
         create_cleared_cookie(&self.config)
-    }
-}
-
-impl std::fmt::Debug for AuthService {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AuthService")
-            .field("db", &"<Database>")
-            .finish()
     }
 }

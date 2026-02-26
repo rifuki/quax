@@ -9,6 +9,9 @@ use quax::{
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
+    // 0. Initialize crypto provider for rustls
+    quax::init_crypto();
+
     // 1. Load environment variables
     env::load();
 

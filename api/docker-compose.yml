@@ -21,6 +21,26 @@ services:
       postgres:
         condition: service_healthy
         required: false
+      redis:
+        condition: service_healthy
+        required: false
+    networks:
+      - quax_net
+
+  redis:
+    profiles: [cache, db]
+    image: redis:7-alpine
+    container_name: quax-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     networks:
       - quax_net
 
@@ -83,6 +103,7 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
   caddy_data:
   caddy_config:
 

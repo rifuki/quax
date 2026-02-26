@@ -1,6 +1,10 @@
 use axum::{Router, middleware, routing::{get, post, delete}};
 
-use crate::{feature::auth::handlers, infrastructure::web::middleware::auth_middleware, state::AppState};
+use crate::{
+    feature::auth::handlers,
+    infrastructure::web::middleware::auth_middleware,
+    state::AppState,
+};
 
 /// Routes that need brute-force rate limiting (login, register)
 pub fn auth_sensitive_routes() -> Router<AppState> {
@@ -20,7 +24,7 @@ pub fn auth_routes() -> Router<AppState> {
         .route("/change-password", post(handlers::change_password))
         .route("/sessions", get(handlers::list_sessions).delete(handlers::logout_all_sessions))
         .route("/sessions/{id}", delete(handlers::revoke_session))
-        .route_layer(middleware::from_fn(auth_middleware));
+        .layer(middleware::from_fn(auth_middleware));
 
     public.merge(protected)
 }

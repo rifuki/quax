@@ -60,8 +60,24 @@ pub struct AuthResponse {
 }
 
 /// Request body for change password
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Validate)]
 pub struct ChangePasswordRequest {
+    #[validate(length(min = 1, message = "Current password is required"))]
     pub current_password: String,
+
+    #[validate(length(min = 8, message = "New password must be at least 8 characters"))]
     pub new_password: String,
+}
+
+/// Hash password using Argon2
+pub fn hash_password(password: &str) -> Result<String, crate::feature::auth::repository::AuthError> {
+    use argon2::{
+        Argon2,
+        password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
+    };
+    let salt = SaltString::generate(&mut OsRng);
+    Argon2::default()
+        .hash_password(password.as_bytes(), &salt)
+        .map(|h| h.to_string())
+        .map_err(|_| crate::feature::auth::repository::AuthError::HashError)
 }

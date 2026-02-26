@@ -3,7 +3,7 @@ use serde::Serialize;
 use sqlx::FromRow;
 use uuid::Uuid;
 
-use crate::feature::auth::claims::Role;
+use crate::feature::auth::types::Role;
 
 /// User entity
 #[derive(Debug, Clone, FromRow, Serialize)]
