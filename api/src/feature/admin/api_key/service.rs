@@ -84,7 +84,9 @@ impl ApiKeyService {
         }
 
         // Check expiration
-        if let Some(expires_at) = key.expires_at && Utc::now() > expires_at {
+        if let Some(expires_at) = key.expires_at
+            && Utc::now() > expires_at
+        {
             return Err(ApiKeyError::Expired);
         }
 
@@ -95,7 +97,11 @@ impl ApiKeyService {
     }
 
     /// List all API keys
-    pub async fn list_keys(&self, limit: i64, offset: i64) -> Result<Vec<ApiKeyResponse>, ApiKeyError> {
+    pub async fn list_keys(
+        &self,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<ApiKeyResponse>, ApiKeyError> {
         let keys = self.repo.list(self.db.pool(), limit, offset).await?;
         Ok(keys.into_iter().map(ApiKeyResponse::from).collect())
     }

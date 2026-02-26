@@ -12,7 +12,7 @@ pub use infrastructure::web::response::{ApiError, ApiResult, ApiSuccess, ErrorCo
 pub fn init_crypto() {
     if rustls::crypto::ring::default_provider()
         .install_default()
-        .is_err() 
+        .is_err()
     {
         // Provider already installed, that's fine
         tracing::debug!("Crypto provider already installed");

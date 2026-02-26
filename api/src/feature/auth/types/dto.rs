@@ -14,7 +14,11 @@ pub struct RegisterRequest {
     #[validate(email(message = "Invalid email format"))]
     pub email: String,
 
-    #[validate(length(min = 3, max = 50, message = "Username must be between 3 and 50 characters"))]
+    #[validate(length(
+        min = 3,
+        max = 50,
+        message = "Username must be between 3 and 50 characters"
+    ))]
     pub username: Option<String>,
 
     #[validate(length(min = 3, message = "Name must be at least 3 characters"))]
@@ -70,7 +74,9 @@ pub struct ChangePasswordRequest {
 }
 
 /// Hash password using Argon2
-pub fn hash_password(password: &str) -> Result<String, crate::feature::auth::repository::AuthError> {
+pub fn hash_password(
+    password: &str,
+) -> Result<String, crate::feature::auth::repository::AuthError> {
     use argon2::{
         Argon2,
         password_hash::{PasswordHasher, SaltString, rand_core::OsRng},

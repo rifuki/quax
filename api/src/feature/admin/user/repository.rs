@@ -18,7 +18,7 @@ pub enum AdminUserRepositoryError {
 pub trait AdminUserRepository: Send + Sync {
     /// List all users ordered by creation date
     async fn list_all(&self, pool: &PgPool) -> Result<Vec<User>, AdminUserRepositoryError>;
-    
+
     /// Update user role
     async fn update_role(
         &self,
@@ -49,7 +49,7 @@ impl AdminUserRepository for AdminUserRepositoryImpl {
         )
         .fetch_all(pool)
         .await?;
-        
+
         Ok(users)
     }
 
@@ -71,7 +71,7 @@ impl AdminUserRepository for AdminUserRepositoryImpl {
         .bind(user_id)
         .fetch_optional(pool)
         .await?;
-        
+
         Ok(user)
     }
 }

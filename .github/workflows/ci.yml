@@ -28,7 +28,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
-      - run: cargo fmt --all --check
+      - run: cargo fmt -- --check
 
   backend-clippy:
     name: Backend / Clippy
@@ -84,11 +84,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('ui/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-bun-
-      - run: bun install
-      - run: bun run lint
+      - name: Setup environment
+        run: cp .env.example .env
+      - name: Install dependencies
+        run: bun install
+      - name: Run linter
+        run: bun run lint
 
   frontend-typecheck:
     name: Frontend / TypeCheck
@@ -105,11 +109,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('ui/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-bun-
-      - run: bun install
-      - run: bun run tsc -b
+      - name: Setup environment
+        run: cp .env.example .env
+      - name: Install dependencies
+        run: bun install
+      - name: Type check
+        run: bun run tsc -b
 
   frontend-build:
     name: Frontend / Build
@@ -126,11 +134,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('ui/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-bun-
-      - run: bun install
-      - run: bun run build
+      - name: Setup environment
+        run: cp .env.example .env
+      - name: Install dependencies
+        run: bun install
+      - name: Build
+        run: bun run build
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:

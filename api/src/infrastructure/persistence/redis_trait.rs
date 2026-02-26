@@ -48,10 +48,7 @@ impl Cache for RedisCache {
     async fn get(&self, key: &str) -> eyre::Result<Option<String>> {
         let mut conn = self.pool.get().await?;
 
-        let result: Option<String> = redis::cmd("GET")
-            .arg(key)
-            .query_async(&mut *conn)
-            .await?;
+        let result: Option<String> = redis::cmd("GET").arg(key).query_async(&mut *conn).await?;
 
         Ok(result)
     }
@@ -182,7 +179,8 @@ impl UserCache {
     }
 
     pub async fn set_user(&self, user_id: Uuid, user_json: &str) -> eyre::Result<()> {
-        self.cache.set(&Self::user_key(user_id), user_json, self.ttl_secs)
+        self.cache
+            .set(&Self::user_key(user_id), user_json, self.ttl_secs)
             .await
     }
 

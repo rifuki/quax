@@ -5,7 +5,10 @@ use crate::{
         auth::{
             repository::AuthError,
             types::{AuthResponse, LoginCredentials, TokenResponse, UserResponse},
-            utils::{create_cleared_cookie, create_refresh_cookie, create_token_pair, extract_user_id, validate_refresh_token},
+            utils::{
+                create_cleared_cookie, create_refresh_cookie, create_token_pair, extract_user_id,
+                validate_refresh_token,
+            },
         },
         user::{CreateUser, repository::UserRepository},
     },
@@ -44,7 +47,7 @@ impl AuthService {
             .map_err(|_| AuthError::HashError)?;
 
         let refresh_cookie = create_refresh_cookie(&tokens.refresh_token, &self.config);
-        
+
         let role = created_user.role().to_string();
 
         let response = AuthResponse {
@@ -78,16 +81,16 @@ impl AuthService {
 
         // Verify password
         use argon2::{Argon2, PasswordHash, PasswordVerifier};
-        let parsed_hash = PasswordHash::new(&user.password_hash)
-            .map_err(|_| AuthError::HashError)?;
-        
+        let parsed_hash =
+            PasswordHash::new(&user.password_hash).map_err(|_| AuthError::HashError)?;
+
         Argon2::default()
             .verify_password(creds.password.as_bytes(), &parsed_hash)
             .map_err(|_| AuthError::InvalidCredentials)?;
 
         let roles = vec![user.role()];
-        let tokens = create_token_pair(user.id, &user.email, &roles)
-            .map_err(|_| AuthError::HashError)?;
+        let tokens =
+            create_token_pair(user.id, &user.email, &roles).map_err(|_| AuthError::HashError)?;
 
         let refresh_cookie = create_refresh_cookie(&tokens.refresh_token, &self.config);
 
@@ -112,7 +115,7 @@ impl AuthService {
     }
 
     /// Refresh access token with rotation
-    /// 
+    ///
     /// TODO: Implement refresh token blacklist for one-time use
     /// Currently, old refresh token remains valid until expiration (7 days)
     /// This is acceptable for most apps, but for higher security:
@@ -123,8 +126,8 @@ impl AuthService {
         &self,
         refresh_token: &str,
     ) -> Result<(TokenResponse, Cookie<'static>), AuthError> {
-        let claims = validate_refresh_token(refresh_token)
-            .map_err(|_| AuthError::InvalidCredentials)?;
+        let claims =
+            validate_refresh_token(refresh_token).map_err(|_| AuthError::InvalidCredentials)?;
 
         let user_id = extract_user_id(&claims).map_err(|_| AuthError::InvalidCredentials)?;
 
@@ -136,8 +139,8 @@ impl AuthService {
 
         // Re-read role from DB so role changes take effect at next refresh
         let roles = vec![user.role()];
-        let tokens = create_token_pair(user.id, &user.email, &roles)
-            .map_err(|_| AuthError::HashError)?;
+        let tokens =
+            create_token_pair(user.id, &user.email, &roles).map_err(|_| AuthError::HashError)?;
 
         let refresh_cookie = create_refresh_cookie(&tokens.refresh_token, &self.config);
 

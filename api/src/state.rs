@@ -57,7 +57,8 @@ impl AppState {
             .wrap_err("Failed to connect to database")?;
 
         let user_repo: Arc<dyn UserRepository> = Arc::new(UserRepositoryImpl::new());
-        let admin_user_repo: Arc<dyn AdminUserRepository> = Arc::new(AdminUserRepositoryImpl::new());
+        let admin_user_repo: Arc<dyn AdminUserRepository> =
+            Arc::new(AdminUserRepositoryImpl::new());
         let stats_repository: Arc<dyn StatsRepository> = Arc::new(StatsRepositoryImpl::new());
 
         let auth_service = Arc::new(AuthService::new(
@@ -109,7 +110,8 @@ impl AppState {
         use tracing_subscriber::{EnvFilter, Registry, reload};
 
         let user_repo: Arc<dyn UserRepository> = Arc::new(UserRepositoryImpl::new());
-        let admin_user_repo: Arc<dyn AdminUserRepository> = Arc::new(AdminUserRepositoryImpl::new());
+        let admin_user_repo: Arc<dyn AdminUserRepository> =
+            Arc::new(AdminUserRepositoryImpl::new());
         let stats_repository: Arc<dyn StatsRepository> = Arc::new(StatsRepositoryImpl::new());
 
         let auth_service = Arc::new(AuthService::new(

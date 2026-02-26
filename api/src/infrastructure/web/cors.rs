@@ -7,7 +7,7 @@ pub fn build_cors_layer(config: &Config) -> CorsLayer {
     // Handle wildcard (*) or specific origins
     let origins = &config.server.cors_allowed_origins;
     let allow_any_origin = origins.len() == 1 && origins[0] == "*";
-    
+
     if allow_any_origin {
         // Wildcard with credentials is not allowed by browsers
         // Log warning and use permissive CORS (development only!)

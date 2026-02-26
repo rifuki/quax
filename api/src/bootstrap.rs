@@ -3,10 +3,7 @@
 
 use crate::{
     feature::{
-        admin::api_key::{
-            repository::ApiKeyRepositoryImpl,
-            service::ApiKeyService,
-        },
+        admin::api_key::{repository::ApiKeyRepositoryImpl, service::ApiKeyService},
         auth::service::AuthService,
         user::CreateUser,
     },
@@ -16,10 +13,7 @@ use std::sync::Arc;
 
 /// Bootstrap the application
 /// - Create admin user from env if no admin exists
-pub async fn bootstrap(
-    db: &Database,
-    config: &Config,
-) -> eyre::Result<()> {
+pub async fn bootstrap(db: &Database, config: &Config) -> eyre::Result<()> {
     tracing::info!("🚀 Running bootstrap checks...");
 
     // Check if bootstrap is enabled
@@ -35,36 +29,33 @@ pub async fn bootstrap(
 
     // Check if admin already exists
     let admin_exists = check_admin_exists(db).await?;
-    
+
     if admin_exists {
         tracing::info!("✅ Admin user already exists, skipping bootstrap");
         return Ok(());
     }
 
     // Create admin from env
-    let admin_email = std::env::var("BOOTSTRAP_ADMIN_EMAIL")
-        .unwrap_or_else(|_| "admin@quax.dev".to_string());
-    
-    let admin_password = std::env::var("BOOTSTRAP_ADMIN_PASSWORD")
-        .unwrap_or_else(|_| generate_secure_password());
+    let admin_email =
+        std::env::var("BOOTSTRAP_ADMIN_EMAIL").unwrap_or_else(|_| "admin@quax.dev".to_string());
 
-    let admin_username = std::env::var("BOOTSTRAP_ADMIN_USERNAME")
-        .unwrap_or_else(|_| "admin".to_string());
+    let admin_password =
+        std::env::var("BOOTSTRAP_ADMIN_PASSWORD").unwrap_or_else(|_| generate_secure_password());
 
-    let admin_name = std::env::var("BOOTSTRAP_ADMIN_NAME")
-        .unwrap_or_else(|_| "Administrator".to_string());
+    let admin_username =
+        std::env::var("BOOTSTRAP_ADMIN_USERNAME").unwrap_or_else(|_| "admin".to_string());
+
+    let admin_name =
+        std::env::var("BOOTSTRAP_ADMIN_NAME").unwrap_or_else(|_| "Administrator".to_string());
 
     tracing::info!("👤 Creating bootstrap admin user: {}", admin_email);
 
     // Create admin via auth service
-    let user_repo: Arc<dyn crate::feature::user::repository::UserRepository> = 
+    let user_repo: Arc<dyn crate::feature::user::repository::UserRepository> =
         Arc::new(crate::feature::user::repository::UserRepositoryImpl::new());
 
-    let auth_service = AuthService::new(
-        db.clone(),
-        Arc::clone(&user_repo),
-        Arc::new(config.clone()),
-    );
+    let auth_service =
+        AuthService::new(db.clone(), Arc::clone(&user_repo), Arc::new(config.clone()));
 
     let create_user = CreateUser {
         email: admin_email.clone(),
@@ -91,7 +82,7 @@ pub async fn bootstrap(
             tracing::info!("║  Password: {:<46} ║", admin_password);
             tracing::info!("╚════════════════════════════════════════════════════════════╝");
             tracing::info!("");
-            
+
             Some(auth_response.user.id)
         }
         Err(e) => {
@@ -110,24 +101,16 @@ pub async fn bootstrap(
 
 /// Check if any admin user exists
 async fn check_admin_exists(db: &Database) -> eyre::Result<bool> {
-    let count: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM users WHERE role = 'admin'"
-    )
-    .fetch_one(db.pool())
-    .await?;
+    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users WHERE role = 'admin'")
+        .fetch_one(db.pool())
+        .await?;
 
     Ok(count > 0)
 }
 
 /// Create bootstrap API key for admin
-async fn create_bootstrap_api_key(
-    db: &Database,
-    admin_id: uuid::Uuid,
-) -> eyre::Result<()> {
-    let api_key_service = ApiKeyService::new(
-        db.clone(),
-        Arc::new(ApiKeyRepositoryImpl::new()),
-    );
+async fn create_bootstrap_api_key(db: &Database, admin_id: uuid::Uuid) -> eyre::Result<()> {
+    let api_key_service = ApiKeyService::new(db.clone(), Arc::new(ApiKeyRepositoryImpl::new()));
 
     match api_key_service
         .generate_key(
@@ -146,7 +129,12 @@ async fn create_bootstrap_api_key(
             tracing::info!("║  Name:     {:<46} ║", key.name);
             tracing::info!("║  Key:      {:<46} ║", key.key);
             tracing::info!("║  Scopes:   {:<46} ║", key.scopes.join(", "));
-            tracing::info!("║  Expires:  {:<46} ║", key.expires_at.map(|d| d.to_string()).unwrap_or_else(|| "Never".to_string()));
+            tracing::info!(
+                "║  Expires:  {:<46} ║",
+                key.expires_at
+                    .map(|d| d.to_string())
+                    .unwrap_or_else(|| "Never".to_string())
+            );
             tracing::info!("╚════════════════════════════════════════════════════════════╝");
             tracing::info!("");
             tracing::warn!("⚠️  IMPORTANT: Save this API key, it won't be shown again!");
@@ -168,7 +156,7 @@ fn generate_secure_password() -> String {
                             abcdefghijklmnopqrstuvwxyz\
                             0123456789\
                             !@#$%^&*";
-    
+
     let mut rng = rand::thread_rng();
     (0..16)
         .map(|_| {

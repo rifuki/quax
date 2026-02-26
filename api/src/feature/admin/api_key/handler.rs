@@ -18,10 +18,7 @@ use super::{
 };
 
 fn make_service(state: &AppState) -> ApiKeyService {
-    ApiKeyService::new(
-        state.db.clone(),
-        Arc::new(ApiKeyRepositoryImpl::new()),
-    )
+    ApiKeyService::new(state.db.clone(), Arc::new(ApiKeyRepositoryImpl::new()))
 }
 
 /// GET /api/v1/admin/api-keys - List all API keys
@@ -92,7 +89,9 @@ pub async fn get_key(
                 .with_message("API key not found")
         })?;
 
-    Ok(ApiSuccess::default().with_data(key).with_message("API key retrieved"))
+    Ok(ApiSuccess::default()
+        .with_data(key)
+        .with_message("API key retrieved"))
 }
 
 /// PATCH /api/v1/admin/api-keys/:id - Update API key
@@ -125,10 +124,7 @@ pub async fn update_key(
 }
 
 /// DELETE /api/v1/admin/api-keys/:id - Delete API key
-pub async fn delete_key(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> ApiResult<()> {
+pub async fn delete_key(State(state): State<AppState>, Path(id): Path<Uuid>) -> ApiResult<()> {
     let service = make_service(&state);
 
     let deleted = service.delete_key(id).await.map_err(|e| {

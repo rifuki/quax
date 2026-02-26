@@ -1,5 +1,5 @@
 //! Auth blacklist integration tests
-//! 
+//!
 //! Tests that blacklisted tokens are properly rejected.
 //! These tests require Redis to be running.
 
@@ -33,7 +33,8 @@ async fn test_logout_invalidates_token() {
         app.clone(),
         "/api/v1/auth/register",
         &json!({ "email": "logout@example.com", "name": "Logout", "password": "pass1234" }),
-    ).await;
+    )
+    .await;
     assert_eq!(status, StatusCode::CREATED);
 
     let token = body["data"]["token"]["access_token"].as_str().unwrap();
@@ -45,7 +46,7 @@ async fn test_logout_invalidates_token() {
     // 3. Logout (this should blacklist the token if implemented)
     // Note: Currently logout just clears cookie, doesn't blacklist
     // This test documents expected behavior when blacklist is implemented
-    
+
     // TODO: When logout blacklist is implemented, uncomment:
     // let req = Request::builder()
     //     .method("POST")
@@ -58,7 +59,11 @@ async fn test_logout_invalidates_token() {
 
     // 4. Verify token still works (until blacklist is implemented)
     let (status, _) = get_authed(app, "/api/v1/users/me", token).await;
-    assert_eq!(status, StatusCode::OK, "Token should still work (blacklist not implemented in logout)");
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "Token should still work (blacklist not implemented in logout)"
+    );
 }
 
 #[tokio::test]
@@ -75,7 +80,8 @@ async fn test_revoke_session_invalidates_token() {
         app.clone(),
         "/api/v1/auth/register",
         &json!({ "email": "revoke@example.com", "name": "Revoke", "password": "pass1234" }),
-    ).await;
+    )
+    .await;
     assert_eq!(status, StatusCode::CREATED);
 
     let token = body["data"]["token"]["access_token"].as_str().unwrap();
@@ -93,7 +99,7 @@ async fn test_revoke_session_invalidates_token() {
         .body(Body::empty())
         .unwrap();
     let res: axum::http::Response<Body> = app.clone().oneshot(req).await.unwrap();
-    
+
     // Currently returns 200 but doesn't actually revoke
     assert_eq!(res.status(), StatusCode::OK);
 

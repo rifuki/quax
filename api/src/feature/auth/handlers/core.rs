@@ -1,11 +1,13 @@
-use axum::{Json, extract::State, http::StatusCode, Extension};
+use axum::{Extension, Json, extract::State, http::StatusCode};
 use axum_extra::extract::cookie::CookieJar;
 use validator::Validate;
 
 use crate::{
     feature::auth::{
         repository::AuthError,
-        types::{AuthResponse, AuthUser, LoginCredentials, RegisterRequest, TokenResponse, UserResponse},
+        types::{
+            AuthResponse, AuthUser, LoginCredentials, RegisterRequest, TokenResponse, UserResponse,
+        },
         utils::REFRESH_TOKEN_COOKIE,
     },
     feature::user::CreateUser,
@@ -66,20 +68,21 @@ pub async fn login(
         let _ = state.auth_service.logout();
     }
 
-    let (response, refresh_cookie) = state
-        .auth_service
-        .login(creds)
-        .await
-        .map_err(|e: AuthError| match e {
-            AuthError::InvalidCredentials => ApiError::default()
-                .with_code(StatusCode::UNAUTHORIZED)
-                .with_error_code(auth_codes::INVALID_CREDENTIALS)
-                .with_message("Invalid email or password"),
-            _ => ApiError::default()
-                .with_code(StatusCode::INTERNAL_SERVER_ERROR)
-                .with_error_code(auth_codes::INTERNAL_ERROR)
-                .with_message("Login failed"),
-        })?;
+    let (response, refresh_cookie) =
+        state
+            .auth_service
+            .login(creds)
+            .await
+            .map_err(|e: AuthError| match e {
+                AuthError::InvalidCredentials => ApiError::default()
+                    .with_code(StatusCode::UNAUTHORIZED)
+                    .with_error_code(auth_codes::INVALID_CREDENTIALS)
+                    .with_message("Invalid email or password"),
+                _ => ApiError::default()
+                    .with_code(StatusCode::INTERNAL_SERVER_ERROR)
+                    .with_error_code(auth_codes::INTERNAL_ERROR)
+                    .with_message("Login failed"),
+            })?;
 
     Ok(ApiSuccess::default()
         .with_data(response)
@@ -88,10 +91,7 @@ pub async fn login(
 }
 
 /// POST /api/v1/auth/refresh
-pub async fn refresh(
-    State(state): State<AppState>,
-    jar: CookieJar,
-) -> ApiResult<TokenResponse> {
+pub async fn refresh(State(state): State<AppState>, jar: CookieJar) -> ApiResult<TokenResponse> {
     let refresh_token = jar
         .get(REFRESH_TOKEN_COOKIE)
         .ok_or_else(|| {
@@ -124,10 +124,7 @@ pub async fn refresh(
 }
 
 /// POST /api/v1/auth/logout
-pub async fn logout(
-    State(state): State<AppState>,
-    jar: CookieJar,
-) -> ApiResult<()> {
+pub async fn logout(State(state): State<AppState>, jar: CookieJar) -> ApiResult<()> {
     let _ = jar.get(REFRESH_TOKEN_COOKIE);
 
     let clear_cookie = crate::feature::auth::utils::cookie::create_cleared_cookie(&state.config);
@@ -158,7 +155,7 @@ pub async fn me(
                 .with_error_code(auth_codes::USER_NOT_FOUND)
                 .with_message("User not found")
         })?;
-    
+
     let user_role = user.role().to_string();
     let response = UserResponse {
         id: user.id,
@@ -168,7 +165,7 @@ pub async fn me(
         avatar_url: user.avatar_url.clone(),
         role: user_role,
     };
-    
+
     Ok(ApiSuccess::default()
         .with_data(response)
         .with_message("User info retrieved"))

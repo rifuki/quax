@@ -72,7 +72,7 @@ impl DatabaseConfig {
 }
 
 /// Cookie SameSite policy - configurable via env for flexibility
-/// 
+///
 /// Use cases:
 /// - "strict": Same domain only, maximum security
 /// - "lax": Top-level navigation allowed (default for cross-port dev)

@@ -24,7 +24,7 @@ static ENV_INIT: OnceLock<()> = OnceLock::new();
 fn setup_env() {
     // Initialize crypto provider first (must be done before any JWT operations)
     quax::init_crypto();
-    
+
     ENV_INIT.get_or_init(|| {
         unsafe {
             std::env::set_var("RUST_ENV", "development");

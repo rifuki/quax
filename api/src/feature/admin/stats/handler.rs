@@ -9,7 +9,9 @@ use crate::{
 /// GET /api/v1/admin/stats
 ///
 /// Get dashboard statistics (admin only).
-pub async fn get_dashboard_stats(State(state): State<AppState>) -> ApiResult<DashboardStatsResponse> {
+pub async fn get_dashboard_stats(
+    State(state): State<AppState>,
+) -> ApiResult<DashboardStatsResponse> {
     let stats = state
         .stats_service
         .get_dashboard_stats(state.db.pool())

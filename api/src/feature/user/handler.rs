@@ -2,7 +2,10 @@ use axum::{Json, extract::State};
 use validator::Validate;
 
 use crate::{
-    feature::{auth::AuthUser, user::dto::{UpdateProfileRequest, UpdateUser, UserProfileResponse}},
+    feature::{
+        auth::AuthUser,
+        user::dto::{UpdateProfileRequest, UpdateUser, UserProfileResponse},
+    },
     infrastructure::web::response::{ApiError, ApiResult, ApiSuccess, codes::generic},
     state::AppState,
 };

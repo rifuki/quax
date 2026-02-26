@@ -52,14 +52,13 @@ pub async fn change_password(
 
     // Verify current password
     use argon2::{Argon2, PasswordHash, PasswordVerifier};
-    let parsed_hash = PasswordHash::new(&user.password_hash)
-        .map_err(|_| {
-            ApiError::default()
-                .with_code(StatusCode::INTERNAL_SERVER_ERROR)
-                .with_error_code(auth_codes::INTERNAL_ERROR)
-                .with_message("Invalid password hash")
-        })?;
-    
+    let parsed_hash = PasswordHash::new(&user.password_hash).map_err(|_| {
+        ApiError::default()
+            .with_code(StatusCode::INTERNAL_SERVER_ERROR)
+            .with_error_code(auth_codes::INTERNAL_ERROR)
+            .with_message("Invalid password hash")
+    })?;
+
     Argon2::default()
         .verify_password(req.current_password.as_bytes(), &parsed_hash)
         .map_err(|_| {
@@ -70,13 +69,12 @@ pub async fn change_password(
         })?;
 
     // Hash new password
-    let new_password_hash = hash_password(&req.new_password)
-        .map_err(|_| {
-            ApiError::default()
-                .with_code(StatusCode::INTERNAL_SERVER_ERROR)
-                .with_error_code(auth_codes::INTERNAL_ERROR)
-                .with_message("Failed to hash password")
-        })?;
+    let new_password_hash = hash_password(&req.new_password).map_err(|_| {
+        ApiError::default()
+            .with_code(StatusCode::INTERNAL_SERVER_ERROR)
+            .with_error_code(auth_codes::INTERNAL_ERROR)
+            .with_message("Failed to hash password")
+    })?;
 
     // Update password in database
     state
@@ -90,6 +88,5 @@ pub async fn change_password(
                 .with_message("Failed to update password")
         })?;
 
-    Ok(ApiSuccess::default()
-        .with_message("Password changed successfully"))
+    Ok(ApiSuccess::default().with_message("Password changed successfully"))
 }

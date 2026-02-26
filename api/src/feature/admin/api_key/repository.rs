@@ -60,11 +60,7 @@ pub trait ApiKeyRepository: Send + Sync {
 
     async fn delete(&self, pool: &PgPool, id: Uuid) -> Result<bool, ApiKeyError>;
 
-    async fn update_last_used(
-        &self,
-        pool: &PgPool,
-        id: Uuid,
-    ) -> Result<(), ApiKeyError>;
+    async fn update_last_used(&self, pool: &PgPool, id: Uuid) -> Result<(), ApiKeyError>;
 }
 
 #[derive(Debug, Clone)]
@@ -110,12 +106,10 @@ impl ApiKeyRepository for ApiKeyRepositoryImpl {
     }
 
     async fn find_by_id(&self, pool: &PgPool, id: Uuid) -> Result<Option<ApiKey>, ApiKeyError> {
-        let key = sqlx::query_as::<_, ApiKey>(
-            "SELECT * FROM api_keys WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(pool)
-        .await?;
+        let key = sqlx::query_as::<_, ApiKey>("SELECT * FROM api_keys WHERE id = $1")
+            .bind(id)
+            .fetch_optional(pool)
+            .await?;
 
         Ok(key)
     }
@@ -126,7 +120,7 @@ impl ApiKeyRepository for ApiKeyRepositoryImpl {
         key_hash: &str,
     ) -> Result<Option<ApiKey>, ApiKeyError> {
         let key = sqlx::query_as::<_, ApiKey>(
-            "SELECT * FROM api_keys WHERE key_hash = $1 AND is_active = true"
+            "SELECT * FROM api_keys WHERE key_hash = $1 AND is_active = true",
         )
         .bind(key_hash)
         .fetch_optional(pool)
@@ -142,7 +136,7 @@ impl ApiKeyRepository for ApiKeyRepositoryImpl {
         offset: i64,
     ) -> Result<Vec<ApiKey>, ApiKeyError> {
         let keys = sqlx::query_as::<_, ApiKey>(
-            "SELECT * FROM api_keys ORDER BY created_at DESC LIMIT $1 OFFSET $2"
+            "SELECT * FROM api_keys ORDER BY created_at DESC LIMIT $1 OFFSET $2",
         )
         .bind(limit)
         .bind(offset)
@@ -165,7 +159,7 @@ impl ApiKeyRepository for ApiKeyRepositoryImpl {
                  is_active = COALESCE($3, is_active),
                  updated_at = NOW()
              WHERE id = $4
-             RETURNING *"
+             RETURNING *",
         )
         .bind(&payload.name)
         .bind(&payload.scopes)
@@ -186,17 +180,11 @@ impl ApiKeyRepository for ApiKeyRepositoryImpl {
         Ok(result.rows_affected() > 0)
     }
 
-    async fn update_last_used(
-        &self,
-        pool: &PgPool,
-        id: Uuid,
-    ) -> Result<(), ApiKeyError> {
-        sqlx::query(
-            "UPDATE api_keys SET last_used_at = NOW() WHERE id = $1"
-        )
-        .bind(id)
-        .execute(pool)
-        .await?;
+    async fn update_last_used(&self, pool: &PgPool, id: Uuid) -> Result<(), ApiKeyError> {
+        sqlx::query("UPDATE api_keys SET last_used_at = NOW() WHERE id = $1")
+            .bind(id)
+            .execute(pool)
+            .await?;
 
         Ok(())
     }

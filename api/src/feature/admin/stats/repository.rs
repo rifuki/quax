@@ -15,19 +15,19 @@ pub enum StatsRepositoryError {
 pub trait StatsRepository: Send + Sync {
     /// Get total users count
     async fn total_users(&self, pool: &PgPool) -> Result<i64, StatsRepositoryError>;
-    
+
     /// Get total admins count
     async fn total_admins(&self, pool: &PgPool) -> Result<i64, StatsRepositoryError>;
-    
+
     /// Get total API keys count
     async fn total_api_keys(&self, pool: &PgPool) -> Result<i64, StatsRepositoryError>;
-    
+
     /// Get active API keys count
     async fn active_api_keys(&self, pool: &PgPool) -> Result<i64, StatsRepositoryError>;
-    
+
     /// Get new users this month count
     async fn new_users_this_month(&self, pool: &PgPool) -> Result<i64, StatsRepositoryError>;
-    
+
     /// Get all dashboard stats at once
     async fn get_dashboard_stats(
         &self,
@@ -95,7 +95,7 @@ impl StatsRepository for StatsRepositoryImpl {
 
     async fn new_users_this_month(&self, pool: &PgPool) -> Result<i64, StatsRepositoryError> {
         let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM users WHERE created_at >= DATE_TRUNC('month', NOW())"
+            "SELECT COUNT(*) FROM users WHERE created_at >= DATE_TRUNC('month', NOW())",
         )
         .fetch_one(pool)
         .await?;

@@ -8,20 +8,15 @@ use crate::{
 };
 
 /// Allowed MIME types for avatar uploads
-const ALLOWED_CONTENT_TYPES: &[&str] = &[
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-    "image/gif",
-];
+const ALLOWED_CONTENT_TYPES: &[&str] = &["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 /// Map a MIME type to a file extension
 fn extension_for(content_type: &str) -> Option<&'static str> {
     match content_type {
         "image/jpeg" => Some("jpg"),
-        "image/png"  => Some("png"),
+        "image/png" => Some("png"),
         "image/webp" => Some("webp"),
-        "image/gif"  => Some("gif"),
+        "image/gif" => Some("gif"),
         _ => None,
     }
 }
@@ -48,10 +43,7 @@ pub async fn upload_avatar(
         }
 
         // --- 2. Validate content type ---
-        let content_type = field
-            .content_type()
-            .unwrap_or("")
-            .to_string();
+        let content_type = field.content_type().unwrap_or("").to_string();
 
         if !ALLOWED_CONTENT_TYPES.contains(&content_type.as_str()) {
             return Err(ApiError::default()
@@ -96,16 +88,21 @@ pub async fn upload_avatar(
     {
         // Derive the storage key from the URL: strip the base_url prefix
         let base = state.config.upload.base_url.trim_end_matches('/');
-        if let Some(key) = old_url.strip_prefix(base).map(|s| s.trim_start_matches('/')) {
+        if let Some(key) = old_url
+            .strip_prefix(base)
+            .map(|s| s.trim_start_matches('/'))
+        {
             let _ = state.storage.delete(key).await;
         }
     }
 
     // --- 5. Store new avatar ---
     let key = format!("avatars/{user_id}.{ext}");
-    state.storage.put(&key, data, &content_type).await.map_err(|e| {
-        ApiError::default().log_only(e)
-    })?;
+    state
+        .storage
+        .put(&key, data, &content_type)
+        .await
+        .map_err(|e| ApiError::default().log_only(e))?;
 
     // --- 6. Persist the public URL ---
     let avatar_url = state.storage.public_url(&key);
@@ -142,7 +139,10 @@ pub async fn delete_avatar(
     // --- 2. Delete from storage if exists ---
     if let Some(old_url) = user.avatar_url {
         let base = state.config.upload.base_url.trim_end_matches('/');
-        if let Some(key) = old_url.strip_prefix(base).map(|s| s.trim_start_matches('/')) {
+        if let Some(key) = old_url
+            .strip_prefix(base)
+            .map(|s| s.trim_start_matches('/'))
+        {
             let _ = state.storage.delete(key).await;
         }
     }
