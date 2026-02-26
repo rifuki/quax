@@ -7,7 +7,7 @@ import {
   isNetworkError,
   getErrorCategory,
   type ApiError,
-} from "@/types/api";
+} from "@/lib/api/types";
 
 interface ParsedErrorOptions {
   appErrorMessageOverride?: (error: ApiError) => string | undefined;

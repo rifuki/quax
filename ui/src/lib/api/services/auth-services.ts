@@ -1,5 +1,5 @@
 import { apiClient, API_ENDPOINTS } from "@/lib/api";
-import type { ApiSuccess } from "@/types/api";
+import type { ApiSuccess } from "@/lib/api/types";
 import type {
   AuthResponse,
   LoginCredentials,
@@ -75,5 +75,23 @@ export const authService = {
     }
 
     return data;
+  },
+
+  changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+    await apiClient.post(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+  },
+
+  getSessions: async (): Promise<{ id: string; device: string; location: string; ip: string; created_at: string; is_current: boolean }[]> => {
+    const response = await apiClient.get<ApiSuccess<{ id: string; device: string; location: string; ip: string; created_at: string; is_current: boolean }[]>>(
+      API_ENDPOINTS.AUTH.SESSIONS
+    );
+    return response.data.data || [];
+  },
+
+  revokeSession: async (sessionId: string): Promise<void> => {
+    await apiClient.delete(`${API_ENDPOINTS.AUTH.SESSIONS}/${sessionId}`);
   },
 };

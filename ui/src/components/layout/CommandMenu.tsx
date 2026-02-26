@@ -20,7 +20,8 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import { useTheme } from "@/hooks/use-theme";
-import { useAuthUser, useLogout } from "@/features/auth/hooks/use-auth";
+import { useAuthUser } from "@/stores/use-auth-store";
+import { useLogout } from "@/features/auth/hooks/use-logout";
 
 interface CommandMenuProps {
   open: boolean;

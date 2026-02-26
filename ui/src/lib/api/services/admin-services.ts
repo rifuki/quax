@@ -1,6 +1,6 @@
 import { apiClient, API_ENDPOINTS } from "@/lib/api";
-import type { ApiResponse } from "@/types/api";
-import type { UserWithTimestamps } from "@/features/user/types/user-types";
+import type { ApiResponse } from "@/lib/api/types";
+import type { UserWithTimestamps } from "@/features/admin/types/admin-types";
 
 export interface LogLevelRequest {
   level: "trace" | "debug" | "info" | "warn" | "error";

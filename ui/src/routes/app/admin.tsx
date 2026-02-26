@@ -12,7 +12,7 @@ import {
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { CommandMenu, CommandMenuTrigger } from "@/components/layout/CommandMenu";
-import { useAuthUser } from "@/features/auth/hooks/use-auth";
+import { useAuthUser } from "@/stores/use-auth-store";
 import { HeaderUserMenu } from "@/components/layout/HeaderUserMenu";
 import {
   DropdownMenu,

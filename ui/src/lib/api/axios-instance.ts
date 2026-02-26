@@ -1,10 +1,10 @@
 import axios from "axios";
-import { http_api_url } from "./api-url";
+import { httpApiUrl } from "./api-config";
 import { API_ENDPOINTS } from "./endpoints";
 import { useAuthStore } from "@/stores/use-auth-store";
 
 const apiClient = axios.create({
-  baseURL: http_api_url,
+  baseURL: httpApiUrl,
   headers: {
     "Content-Type": "application/json",
   },
@@ -62,7 +62,7 @@ apiClient.interceptors.response.use(
 
       try {
         const response = await axios.post(
-          `${http_api_url}${API_ENDPOINTS.AUTH.REFRESH}`,
+          `${httpApiUrl}${API_ENDPOINTS.AUTH.REFRESH}`,
           {},
           { withCredentials: true }
         );

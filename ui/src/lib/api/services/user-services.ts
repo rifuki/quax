@@ -1,5 +1,5 @@
 import { apiClient, API_ENDPOINTS } from "@/lib/api";
-import type { ApiResponse } from "@/types/api";
+import type { ApiResponse } from "@/lib/api/types";
 import type { User } from "@/features/auth/types/auth-types";
 
 export interface UpdateUserData {

@@ -21,7 +21,7 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { useAuthUser } from "@/features/auth/hooks/use-auth";
+import { useAuthUser } from "@/stores/use-auth-store";
 
 export function AppSidebar() {
   const user = useAuthUser();

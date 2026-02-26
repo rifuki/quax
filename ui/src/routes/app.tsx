@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { AuthProvider } from "@/providers/AuthProvider";
-import { useIsAuthenticated, useAuthUser } from "@/features/auth/hooks/use-auth";
+import { useIsAuthenticated, useAuthUser } from "@/stores/use-auth-store";
 import { useEffect } from "react";
 
 export const Route = createFileRoute("/app")({

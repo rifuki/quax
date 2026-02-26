@@ -1,7 +1,10 @@
-import type { UserWithTimestamps } from "@/features/user/types/user-types";
+import type { User } from "@/features/auth/types/auth-types";
 
-// Re-export extended user type
-export type { UserWithTimestamps as User };
+// Extended user with timestamps (for admin view)
+export interface UserWithTimestamps extends User {
+  created_at?: string;
+  updated_at?: string;
+}
 
 // Log level request
 export interface LogLevelRequest {
