@@ -1,8 +1,3 @@
-/**
- * Admin API
- * Re-export from lib/api for backward compatibility
- */
-
 import { adminService } from "@/lib/api";
 import type { User } from "../types/admin-types";
 

@@ -1,4 +1,4 @@
-import { useAuthUser, useLogout } from "@/features/auth";
+import { useAuthUser, useLogout } from "@/features/auth/hooks/use-auth";
 import { useTheme } from "next-themes";
 import { useNavigate } from "@tanstack/react-router";
 import {

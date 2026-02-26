@@ -1,30 +1,15 @@
-/**
- * Auth Hooks
- * Combination of Query + Mutations + Zustand
- */
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-
 import { authService } from "@/lib/api";
 import { useAuthActions } from "@/stores/use-auth-store";
+import { useIsAuthenticated } from "@/stores/use-auth-store";
 
-/**
- * Query Keys for Auth
- */
 export const authKeys = {
   all: ["auth"] as const,
   me: () => [...authKeys.all, "me"] as const,
   session: () => [...authKeys.all, "session"] as const,
 };
 
-// ==================== QUERIES ====================
-
-import { useIsAuthenticated } from "@/stores/use-auth-store";
-
-/**
- * Hook to fetch current user
- */
 export function useMe(options?: { enabled?: boolean }) {
   const isAuth = useIsAuthenticated();
 
@@ -37,9 +22,6 @@ export function useMe(options?: { enabled?: boolean }) {
   });
 }
 
-/**
- * Hook to check if user is authenticated
- */
 export function useAuthCheck(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: authKeys.session(),
@@ -57,11 +39,6 @@ export function useAuthCheck(options?: { enabled?: boolean }) {
   });
 }
 
-// ==================== MUTATIONS ====================
-
-/**
- * Login Mutation Hook
- */
 export function useLogin() {
   const queryClient = useQueryClient();
   const { login } = useAuthActions();
@@ -81,9 +58,6 @@ export function useLogin() {
   });
 }
 
-/**
- * Register Mutation Hook
- */
 export function useRegister() {
   const queryClient = useQueryClient();
   const { login } = useAuthActions();
@@ -103,10 +77,6 @@ export function useRegister() {
   });
 }
 
-/**
- * Logout Mutation Hook
- * Calls backend to invalidate refresh token, then clears local state
- */
 export function useLogout() {
   const queryClient = useQueryClient();
   const { logout } = useAuthActions();
@@ -119,14 +89,11 @@ export function useLogout() {
       toast.success("Logged out successfully");
     },
     onError: () => {
-      // Even if backend logout fails, clear local state
       logout();
       queryClient.clear();
     },
   });
 }
-
-// ==================== ZUSTAND EXPORTS ====================
 
 export {
   useAuthStore,
@@ -138,8 +105,6 @@ export {
   useAuthState,
 } from "@/stores/use-auth-store";
 
-// ==================== TYPES ====================
-
 export type {
   User,
   AuthResponse,
@@ -147,4 +112,4 @@ export type {
   LoginCredentials,
   RegisterCredentials,
   AuthContextType,
-} from "../types";
+} from "../types/auth-types";

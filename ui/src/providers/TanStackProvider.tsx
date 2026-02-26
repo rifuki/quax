@@ -1,18 +1,13 @@
 "use client";
 
-// React
 import { useState, type ReactNode } from "react";
-
-// External Libraries
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
-// Type Definitions
 interface TanStackProviderProps {
   children: ReactNode;
 }
 
-// Global query client instance
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -24,14 +19,7 @@ export const queryClient = new QueryClient({
   },
 });
 
-/**
- * TanStackProvider Component
- *
- * This component initializes the TanStack Query Client and provides it to the application.
- * It wraps the children components with the QueryClientProvider to enable data fetching capabilities.
- */
 export default function TanStackProvider({ children }: TanStackProviderProps) {
-  // Initialize QueryClient
   const [localQueryClient] = useState(() => queryClient);
 
   return (

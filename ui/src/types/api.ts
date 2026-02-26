@@ -1,10 +1,3 @@
-/**
- * Global API Types
- * Aligned with Quax backend: ApiSuccess<T> and ApiError
- */
-
-// ==================== SUCCESS RESPONSE ====================
-
 export interface ApiSuccess<T> {
   success: true;
   code: number;
@@ -13,29 +6,19 @@ export interface ApiSuccess<T> {
   timestamp: number;
 }
 
-// Alias for backward compatibility
 export type ApiResponse<T> = ApiSuccess<T>;
-
-// ==================== ERROR RESPONSE ====================
 
 export interface ApiError {
   success: false;
   code: number;
-  error_code: string | null;  // e.g. "AUTH_001", "VAL_001"
+  error_code: string | null;
   message: string;
-  details: string | null;     // Only in debug mode
+  details: string | null;
   timestamp: number;
 }
 
-// Legacy alias
 export type ApiErrorResponse = ApiError;
 
-// ==================== TYPE GUARDS ====================
-
-/**
- * Check if error is an API error response
- * Matches Quax backend ApiError structure
- */
 export const isApiError = (error: unknown): error is ApiError => {
   return (
     error != null &&
@@ -46,18 +29,11 @@ export const isApiError = (error: unknown): error is ApiError => {
   );
 };
 
-// Legacy alias
 export const isApiErrorResponse = isApiError;
 
-/**
- * Check if error is a network error
- */
 export const isNetworkError = (error: unknown): boolean => {
   return error instanceof Error && error.message === "Network Error";
 };
-
-// ==================== ERROR CODE CONSTANTS ====================
-// Aligned with Quax backend: api/src/infrastructure/web/response/codes.rs
 
 export const ErrorCodes = {
   AUTH: {
@@ -81,11 +57,6 @@ export const ErrorCodes = {
   },
 } as const;
 
-// ==================== HELPERS ====================
-
-/**
- * Get error code category
- */
 export const getErrorCategory = (errorCode: string | null): string => {
   if (!errorCode) return "UNKNOWN";
   if (errorCode.startsWith("AUTH_")) return "AUTH";
@@ -94,9 +65,6 @@ export const getErrorCategory = (errorCode: string | null): string => {
   return "UNKNOWN";
 };
 
-/**
- * Check if error has specific error code
- */
 export const hasErrorCode = (
   error: unknown,
   code: string

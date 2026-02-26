@@ -1,9 +1,4 @@
-/**
- * Admin Types
- * Feature-specific types for admin operations
- */
-
-import type { UserWithTimestamps } from "@/features/user";
+import type { UserWithTimestamps } from "@/features/user/types/user-types";
 
 // Re-export extended user type
 export type { UserWithTimestamps as User };

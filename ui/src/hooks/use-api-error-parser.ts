@@ -1,8 +1,3 @@
-/**
- * API Error Parser Hook
- * Aligned with Quax backend ApiError structure
- */
-
 import { useMemo } from "react";
 
 import axios from "axios";
@@ -15,13 +10,7 @@ import {
 } from "@/types/api";
 
 interface ParsedErrorOptions {
-  /**
-   * Override error message for specific API errors
-   */
   appErrorMessageOverride?: (error: ApiError) => string | undefined;
-  /**
-   * Default message for unknown errors
-   */
   defaultMessage?: string;
 }
 
@@ -44,26 +33,6 @@ export interface ParsedError {
   originalError: unknown;
 }
 
-/**
- * Hook to parse API errors into consistent format
- * Aligned with Quax backend error structure
- *
- * @example
- * ```tsx
- * const { data, error } = useQuery({...});
- * const parsedError = useApiErrorParser(error);
- *
- * if (parsedError.isNetworkError) {
- *   return <div>Connection lost. Please check your internet.</div>;
- * }
- *
- * if (parsedError.hasErrorCode("AUTH_001")) {
- *   return <div>Invalid credentials</div>;
- * }
- *
- * return <div className="text-red-500">{parsedError.message}</div>;
- * ```
- */
 export function useApiErrorParser(
   error: unknown,
   options?: ParsedErrorOptions

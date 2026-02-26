@@ -1,12 +1,6 @@
-/**
- * User Services
- * API calls for user-related endpoints
- */
-
 import { apiClient, API_ENDPOINTS } from "@/lib/api";
-
 import type { ApiResponse } from "@/types/api";
-import type { User } from "@/features/auth";
+import type { User } from "@/features/auth/types/auth-types";
 
 export interface UpdateUserData {
   name?: string;
@@ -15,9 +9,6 @@ export interface UpdateUserData {
 }
 
 export const userService = {
-  /**
-   * Get current user profile
-   */
   getMe: async (): Promise<User> => {
     const response = await apiClient.get<ApiResponse<User>>(
       API_ENDPOINTS.USER.ME
@@ -31,9 +22,6 @@ export const userService = {
     return data;
   },
 
-  /**
-   * Update current user profile
-   */
   updateMe: async (userData: UpdateUserData): Promise<User> => {
     const response = await apiClient.patch<ApiResponse<User>>(
       API_ENDPOINTS.USER.UPDATE,

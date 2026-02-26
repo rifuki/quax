@@ -4,9 +4,9 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
-import { CommandMenu, CommandMenuTrigger } from "@/components/layout/command-menu";
-import { useAuthUser } from "@/features/auth";
-import { HeaderUserMenu } from "@/components/layout/header-user-menu";
+import { CommandMenu, CommandMenuTrigger } from "@/components/layout/CommandMenu";
+import { useAuthUser } from "@/features/auth/hooks/use-auth";
+import { HeaderUserMenu } from "@/components/layout/HeaderUserMenu";
 import {
     DropdownMenu,
     DropdownMenuContent,

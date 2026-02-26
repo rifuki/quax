@@ -1,9 +1,4 @@
-/**
- * User Types
- * Feature-specific types for user management
- */
-
-import type { User } from "@/features/auth";
+import type { User } from "@/features/auth/types/auth-types";
 
 // Extended user with timestamps (for admin view)
 export interface UserWithTimestamps extends User {

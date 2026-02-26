@@ -9,11 +9,11 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/layout/app-sidebar-new";
-import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav";
-import { CommandMenu, CommandMenuTrigger } from "@/components/layout/command-menu";
-import { useAuthUser } from "@/features/auth";
-import { HeaderUserMenu } from "@/components/layout/header-user-menu";
+import { AppSidebar } from "@/components/layout/AppSidebar";
+import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
+import { CommandMenu, CommandMenuTrigger } from "@/components/layout/CommandMenu";
+import { useAuthUser } from "@/features/auth/hooks/use-auth";
+import { HeaderUserMenu } from "@/components/layout/HeaderUserMenu";
 import {
   DropdownMenu,
   DropdownMenuContent,

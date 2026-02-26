@@ -1,8 +1,3 @@
-/**
- * API Endpoints Configuration
- * Centralized endpoint definitions for all API routes
- */
-
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: "/auth/login",

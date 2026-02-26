@@ -4,8 +4,8 @@ import { Users, Key, TrendingUp, Shield, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuthUser } from "@/features/auth";
-import { useDashboardStats } from "@/features/admin";
+import { useAuthUser } from "@/features/auth/hooks/use-auth";
+import { useDashboardStats } from "@/features/admin/hooks/use-admin";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 import { Link } from "@tanstack/react-router";

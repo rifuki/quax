@@ -1,8 +1,3 @@
-/**
- * API Key Management Component
- * Create, view, revoke, and delete API keys
- */
-
 import { useState } from "react";
 import { Key, Plus, Copy, Check, Trash2, Ban, Clock, Shield } from "lucide-react";
 import {

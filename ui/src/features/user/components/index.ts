@@ -1,3 +1,0 @@
-/**
- * User Components Barrel Export
- */

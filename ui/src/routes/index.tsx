@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   Shield,
   Zap,
@@ -25,7 +25,7 @@ import {
   Layers,
   Terminal,
 } from "lucide-react";
-import { useIsAuthenticated } from "@/features/auth";
+import { useIsAuthenticated } from "@/features/auth/hooks/use-auth";
 
 export const Route = createFileRoute("/")({
   component: LandingPage,

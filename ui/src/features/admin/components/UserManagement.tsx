@@ -1,8 +1,3 @@
-/**
- * User Management Component
- * Enhanced user list with search, filter, and role management
- */
-
 import { useState } from "react";
 import { Search, Shield, User as UserIcon, MoreHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 import { useUsersList, useUpdateUserRole } from "../hooks/use-admin";
@@ -38,7 +33,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import type { UserWithTimestamps } from "@/features/user";
+import type { UserWithTimestamps } from "@/features/user/types/user-types";
 
 interface ConfirmDialogProps {
   open: boolean;

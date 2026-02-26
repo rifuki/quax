@@ -3,7 +3,8 @@ import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 // Providers
-import { TanStackProvider, ThemeProvider } from "@/providers";
+import TanStackProvider from "@/providers/TanStackProvider";
+import ThemeProvider from "@/providers/ThemeProvider";
 
 // Components
 import { Toaster } from "@/components/ui/sonner";

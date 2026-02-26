@@ -1,23 +1,13 @@
-/**
- * Admin Query Hooks
- */
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { adminService } from "@/lib/api";
 
-/**
- * Query Keys for Admin
- */
 export const adminKeys = {
   all: ["admin"] as const,
   users: () => [...adminKeys.all, "users"] as const,
   logs: () => [...adminKeys.all, "logs"] as const,
 };
 
-/**
- * Hook to fetch all users (admin only)
- */
 export function useUsersList(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: adminKeys.users(),

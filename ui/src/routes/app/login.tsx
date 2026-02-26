@@ -3,9 +3,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Eye, EyeOff, ArrowRight, Loader2, Zap, ShieldCheck, Package } from "lucide-react";
-import { useLogin, useIsAuthenticated } from "@/features/auth";
+import { useLogin, useIsAuthenticated } from "@/features/auth/hooks/use-auth";
 
 export const Route = createFileRoute("/app/login")({
   component: LoginPage,

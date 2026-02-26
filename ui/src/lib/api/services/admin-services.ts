@@ -1,12 +1,6 @@
-/**
- * Admin Services
- * API calls for admin-only endpoints
- */
-
 import { apiClient, API_ENDPOINTS } from "@/lib/api";
-
 import type { ApiResponse } from "@/types/api";
-import type { UserWithTimestamps } from "@/features/user";
+import type { UserWithTimestamps } from "@/features/user/types/user-types";
 
 export interface LogLevelRequest {
   level: "trace" | "debug" | "info" | "warn" | "error";
@@ -23,7 +17,7 @@ export interface DashboardStats {
 export interface ApiKey {
   id: string;
   name: string;
-  key?: string; // Only present when creating
+  key?: string;
   scopes: string[];
   created_at: string;
   expires_at: string | null;
@@ -48,9 +42,6 @@ export interface CreateApiKeyResponse {
 }
 
 export const adminService = {
-  /**
-   * Get all users (admin only)
-   */
   getUsers: async (): Promise<UserWithTimestamps[]> => {
     const response = await apiClient.get<ApiResponse<UserWithTimestamps[]>>(
       API_ENDPOINTS.ADMIN.USERS
@@ -64,18 +55,12 @@ export const adminService = {
     return data;
   },
 
-  /**
-   * Set log level (admin only)
-   */
   setLogLevel: async (level: LogLevelRequest["level"]): Promise<void> => {
     await apiClient.post<ApiResponse<void>>(API_ENDPOINTS.ADMIN.LOG_LEVEL, {
       level,
     });
   },
 
-  /**
-   * Get dashboard stats (admin only)
-   */
   getDashboardStats: async (): Promise<DashboardStats> => {
     const response = await apiClient.get<ApiResponse<DashboardStats>>(
       API_ENDPOINTS.ADMIN.STATS
@@ -89,9 +74,6 @@ export const adminService = {
     return data;
   },
 
-  /**
-   * Update user role (admin only)
-   */
   updateUserRole: async (
     userId: string,
     role: "admin" | "user"
@@ -102,9 +84,6 @@ export const adminService = {
     );
   },
 
-  /**
-   * Get all API keys (admin only)
-   */
   getApiKeys: async (): Promise<ApiKey[]> => {
     const response = await apiClient.get<ApiResponse<ApiKey[]>>(
       API_ENDPOINTS.ADMIN.API_KEYS
@@ -118,9 +97,6 @@ export const adminService = {
     return data;
   },
 
-  /**
-   * Create new API key (admin only)
-   */
   createApiKey: async (
     name: string,
     scopes: string[],
@@ -142,18 +118,12 @@ export const adminService = {
     return result;
   },
 
-  /**
-   * Revoke an API key (admin only)
-   */
   revokeApiKey: async (id: string): Promise<void> => {
     await apiClient.post<ApiResponse<void>>(
       API_ENDPOINTS.ADMIN.API_KEY_REVOKE(id)
     );
   },
 
-  /**
-   * Delete an API key (admin only)
-   */
   deleteApiKey: async (id: string): Promise<void> => {
     await apiClient.delete<ApiResponse<void>>(
       API_ENDPOINTS.ADMIN.API_KEY_DELETE(id)

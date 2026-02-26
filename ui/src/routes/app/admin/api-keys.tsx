@@ -85,9 +85,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useApiKeys, useCreateApiKey, useRevokeApiKey, useDeleteApiKey } from "@/features/admin";
+import { useApiKeys, useCreateApiKey, useRevokeApiKey, useDeleteApiKey } from "@/features/admin/hooks/use-admin";
 import { toast } from "sonner";
-import type { ApiKey } from "@/features/admin";
+import type { ApiKey } from "@/features/admin/types/admin-types";
 
 const AVAILABLE_SCOPES = [
   { value: "admin:full", label: "Full Admin Access" },

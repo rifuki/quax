@@ -1,8 +1,3 @@
-/**
- * API URL Builder
- * Constructs HTTP and WebSocket URLs from environment configuration
- */
-
 import { getApiUrl } from "./get-api-url";
 
 // API path for the application

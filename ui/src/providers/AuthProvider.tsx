@@ -1,7 +1,3 @@
-/**
- * Auth Provider - Secure-First Strategy
- */
-
 import { useEffect, useState } from "react";
 import { useAuthActions } from "@/stores/use-auth-store";
 import { authService } from "@/lib/api";
@@ -22,25 +18,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log("[AuthProvider] Starting auth check...");
 
       try {
-        // 1. Attempt token refresh
         console.log("[AuthProvider] Calling refreshToken...");
         const accessToken = await authService.refreshToken();
 
         if (cancelled) return;
         console.log("[AuthProvider] refreshToken success:", accessToken.substring(0, 20) + "...");
 
-        // 2. Save token to Zustand
         updateToken(accessToken);
         console.log("[AuthProvider] Token saved to Zustand");
 
-        // 3. Fetch user info
         console.log("[AuthProvider] Calling getMe...");
         const user = await authService.getMe();
 
         if (cancelled) return;
         console.log("[AuthProvider] getMe success:", user.email);
 
-        // 4. Login complete
         login(accessToken, user);
         console.log("[AuthProvider] Login complete!");
 

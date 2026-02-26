@@ -1,8 +1,3 @@
-/**
- * Stats Overview Component
- * Display dashboard statistics cards
- */
-
 import { Users, Shield, Key, KeyRound, TrendingUp } from "lucide-react";
 import { useDashboardStats } from "../hooks/use-admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

@@ -1,10 +1,5 @@
-/**
- * User API
- * Re-export from lib/api for backward compatibility
- */
-
 import { userService } from "@/lib/api";
-import type { User } from "@/features/auth";
+import type { User } from "@/features/auth/types/auth-types";
 
 export { userService as userApi };
 

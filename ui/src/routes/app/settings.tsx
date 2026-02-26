@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { X } from "lucide-react";
-import { useAuthUser } from "@/features/auth";
+import { useAuthUser } from "@/features/auth/hooks/use-auth";
 
 export const Route = createFileRoute("/app/settings")({
     component: SettingsLayout,

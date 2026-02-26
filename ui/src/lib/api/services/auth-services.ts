@@ -1,26 +1,13 @@
-/**
- * Auth Services
- * API calls for authentication endpoints
- * 
- * SECURITY NOTE: Tokens are stored in MEMORY (Zustand), not localStorage.
- * Refresh token is managed via httpOnly cookie (backend-managed).
- */
-
 import { apiClient, API_ENDPOINTS } from "@/lib/api";
-
 import type { ApiSuccess } from "@/types/api";
 import type {
   AuthResponse,
   LoginCredentials,
   RegisterCredentials,
   User,
-} from "@/features/auth";
+} from "@/features/auth/types/auth-types";
 
 export const authService = {
-  /**
-   * Login user with email and password
-   * Returns auth data; caller must store token in Zustand (memory)
-   */
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     const response = await apiClient.post<ApiSuccess<AuthResponse>>(
       API_ENDPOINTS.AUTH.LOGIN,
@@ -35,10 +22,6 @@ export const authService = {
     return data;
   },
 
-  /**
-   * Register new user
-   * Returns auth data; caller must store token in Zustand (memory)
-   */
   register: async (userData: RegisterCredentials): Promise<AuthResponse> => {
     const response = await apiClient.post<ApiSuccess<AuthResponse>>(
       API_ENDPOINTS.AUTH.REGISTER,
@@ -53,10 +36,6 @@ export const authService = {
     return data;
   },
 
-  /**
-   * Refresh access token using httpOnly refresh cookie.
-   * Deduplicates concurrent calls — only one request in-flight at a time.
-   */
   refreshToken: (() => {
     let inflight: Promise<string> | null = null;
 
@@ -81,18 +60,10 @@ export const authService = {
     };
   })(),
 
-  /**
-   * Logout user
-   * Calls backend to invalidate refresh token, then clears memory state
-   */
   logout: async (): Promise<void> => {
     await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT, {}, { withCredentials: true });
-    // Note: Caller must clear Zustand state after this
   },
 
-  /**
-   * Get current user info
-   */
   getMe: async (): Promise<User> => {
     const response = await apiClient.get<ApiSuccess<User>>(
       API_ENDPOINTS.AUTH.ME

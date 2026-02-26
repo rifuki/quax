@@ -60,10 +60,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useUsersList, useUpdateUserRole } from "@/features/admin";
-import { useAuthUser } from "@/features/auth";
+import { useUsersList, useUpdateUserRole } from "@/features/admin/hooks/use-admin";
+import { useAuthUser } from "@/features/auth/hooks/use-auth";
 import { toast } from "sonner";
-import type { UserWithTimestamps } from "@/features/user";
+import type { UserWithTimestamps } from "@/features/user/types/user-types";
 
 export const Route = createFileRoute("/app/admin/users")({
   component: UsersManagementPage,
