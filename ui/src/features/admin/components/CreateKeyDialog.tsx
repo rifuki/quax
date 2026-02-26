@@ -94,12 +94,12 @@ export function CreateKeyDialog({ open, onClose, onSuccess }: CreateKeyDialogPro
 
         {createdKey ? (
           <div className="space-y-4">
-            <div className="rounded-md bg-amber-50 border border-amber-200 p-4">
-              <p className="text-sm text-amber-800 mb-2 font-medium">
+            <div className="rounded-md bg-muted/50 border border-border p-4">
+              <p className="text-sm font-semibold mb-2 text-foreground">
                 Copy this key now! It won&apos;t be shown again.
               </p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 bg-amber-100 px-3 py-2 rounded text-sm font-mono break-all">
+                <code className="flex-1 bg-background px-3 py-2 rounded border border-border text-sm font-mono break-all text-foreground">
                   {createdKey}
                 </code>
                 <CopyButton text={createdKey} />

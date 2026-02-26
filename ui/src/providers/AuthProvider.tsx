@@ -8,7 +8,7 @@ interface AuthProviderProps {
 }
 
 // Debug logging - only in development
-const debug = import.meta.env.DEV ? console.log : () => {};
+const debug = import.meta.env.DEV ? console.log : () => { };
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const { login, logout, updateToken } = useAuthActions();
@@ -58,7 +58,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => {
       cancelled = true;
     };
-  }, [login, logout, updateToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
   if (isChecking) {
     return (

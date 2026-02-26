@@ -4,7 +4,7 @@ use validator::Validate;
 use crate::{
     feature::auth::{
         auth_method::AuthProvider,
-        types::{AuthUser, ChangePasswordRequest, hash_password},
+        types::{AuthUser, ChangePasswordRequest},
     },
     infrastructure::web::response::{
         ApiError, ApiResult, ApiSuccess,
@@ -70,19 +70,11 @@ pub async fn change_password(
             .with_message("Current password is incorrect"));
     }
 
-    // Hash new password
-    let new_password_hash = hash_password(&req.new_password).map_err(|_| {
-        ApiError::default()
-            .with_code(StatusCode::INTERNAL_SERVER_ERROR)
-            .with_error_code(auth_codes::INTERNAL_ERROR)
-            .with_message("Failed to hash password")
-    })?;
-
     // Update password in database
     state
         .auth_service
         .auth_method_service()
-        .update_password(auth_method.id, &new_password_hash)
+        .update_password(auth_method.id, &req.new_password)
         .await
         .map_err(|_| {
             ApiError::default()

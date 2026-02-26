@@ -44,6 +44,9 @@ apiClient.interceptors.response.use(
         originalRequest.url === API_ENDPOINTS.AUTH.REGISTER ||
         originalRequest.url === API_ENDPOINTS.AUTH.REFRESH
       ) {
+        if (error.response?.data) {
+          return Promise.reject(error.response.data);
+        }
         return Promise.reject(error);
       }
 

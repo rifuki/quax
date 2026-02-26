@@ -111,13 +111,10 @@ pub async fn upload_avatar(
     let avatar_url = state.storage.public_url(&key);
     state
         .user_profile_repo
-        .update(
+        .update_avatar(
             state.db.pool(),
             user_id,
-            None,
             Some(&avatar_url),
-            None,
-            None,
         )
         .await
         .map_err(|e| ApiError::default().log_only(e))?;
@@ -160,7 +157,7 @@ pub async fn delete_avatar(
     // --- 3. Update DB: clear avatar_url ---
     state
         .user_profile_repo
-        .update(state.db.pool(), user_id, None, Some(""), None, None)
+        .update_avatar(state.db.pool(), user_id, None)
         .await
         .map_err(|e| ApiError::default().log_only(e))?;
 

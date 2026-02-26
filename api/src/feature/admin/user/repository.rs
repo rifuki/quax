@@ -42,7 +42,7 @@ impl AdminUserRepository for AdminUserRepositoryImpl {
     async fn list_all(&self, pool: &PgPool) -> Result<Vec<User>, AdminUserRepositoryError> {
         let users: Vec<User> = sqlx::query_as(
             r#"
-            SELECT id, email, username, name, password_hash, role, avatar_url, created_at, updated_at 
+            SELECT id, email, username, is_active, email_verified, role, created_at, updated_at 
             FROM users 
             ORDER BY created_at DESC
             "#
@@ -64,7 +64,7 @@ impl AdminUserRepository for AdminUserRepositoryImpl {
             UPDATE users 
             SET role = $1, updated_at = NOW() 
             WHERE id = $2 
-            RETURNING id, email, username, name, password_hash, role, avatar_url, created_at, updated_at
+            RETURNING id, email, username, is_active, email_verified, role, created_at, updated_at
             "#
         )
         .bind(role)

@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { authService } from "@/lib/api";
 import { useAuthActions } from "@/stores/use-auth-store";
+import { isApiError } from "@/lib/api/types";
 
 export const authKeys = {
   all: ["auth"] as const,
@@ -19,9 +20,16 @@ export function useRegister() {
       queryClient.invalidateQueries({ queryKey: authKeys.me() });
       toast.success("Account created successfully!");
     },
-    onError: (error: Error) => {
+    onError: (error: unknown) => {
+      let description = "An unexpected error occurred.";
+      if (isApiError(error)) {
+        description = error.message;
+      } else if (error instanceof Error) {
+        description = error.message;
+      }
+
       toast.error("Registration failed", {
-        description: error.message,
+        description,
       });
     },
   });
