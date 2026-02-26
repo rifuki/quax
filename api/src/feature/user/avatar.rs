@@ -111,11 +111,7 @@ pub async fn upload_avatar(
     let avatar_url = state.storage.public_url(&key);
     state
         .user_profile_repo
-        .update_avatar(
-            state.db.pool(),
-            user_id,
-            Some(&avatar_url),
-        )
+        .update_avatar(state.db.pool(), user_id, Some(&avatar_url))
         .await
         .map_err(|e| ApiError::default().log_only(e))?;
 

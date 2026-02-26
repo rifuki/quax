@@ -62,6 +62,7 @@ impl AuthService {
         username: Option<&str>,
         password: &str,
         full_name: Option<&str>,
+        device_info: Option<&DeviceInfo>,
     ) -> Result<(AuthResponse, Cookie<'static>), AuthError> {
         // 1. Create user (identity only)
         let user = self
@@ -104,6 +105,23 @@ impl AuthService {
         let roles = vec![user.role()];
         let tokens =
             create_token_pair(user.id, &user.email, &roles).map_err(|_| AuthError::HashError)?;
+
+        // 6. Create session record
+        if let Some(info) = device_info {
+            let refresh_expiry: i64 = std::env::var("JWT_REFRESH_EXPIRY_SECS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(604800); // default 7 days
+
+            let expires_at =
+                chrono::DateTime::from_timestamp(tokens.session_iat + refresh_expiry, 0)
+                    .unwrap_or_else(|| chrono::Utc::now() + chrono::Duration::days(7));
+
+            let _ = self
+                .session_service
+                .create_session(user.id, &tokens.session_id, info, expires_at)
+                .await;
+        }
 
         let refresh_cookie = create_refresh_cookie(&tokens.refresh_token, &self.config);
 
@@ -181,6 +199,11 @@ impl AuthService {
 
         // 7. Create session record
         if let Some(info) = device_info {
+            tracing::info!(
+                "Creating session for user: {}, device: {:?}",
+                user.id,
+                info.device_type
+            );
             let refresh_expiry: i64 = std::env::var("JWT_REFRESH_EXPIRY_SECS")
                 .ok()
                 .and_then(|v| v.parse().ok())
@@ -190,10 +213,16 @@ impl AuthService {
                 chrono::DateTime::from_timestamp(tokens.session_iat + refresh_expiry, 0)
                     .unwrap_or_else(|| chrono::Utc::now() + chrono::Duration::days(7));
 
-            let _ = self
+            match self
                 .session_service
                 .create_session(user.id, &tokens.session_id, info, expires_at)
-                .await;
+                .await
+            {
+                Ok(session) => tracing::info!("Session created successfully: {:?}", session.id),
+                Err(e) => tracing::error!("Failed to create session: {:?}", e),
+            }
+        } else {
+            tracing::warn!("No device info provided, skipping session creation");
         }
 
         let refresh_cookie = create_refresh_cookie(&tokens.refresh_token, &self.config);
@@ -437,6 +466,23 @@ impl AuthService {
             }
         }
 
+        // Check if session is still active in database
+        let session = self
+            .session_service
+            .get_session(&claims.sid)
+            .await
+            .map_err(|_| AuthError::Database(sqlx::Error::RowNotFound))?;
+
+        if let Some(s) = session {
+            if !s.is_active {
+                tracing::warn!("Session {} has been revoked", claims.sid);
+                return Err(AuthError::InvalidCredentials);
+            }
+        } else {
+            tracing::warn!("Session {} not found in database", claims.sid);
+            return Err(AuthError::InvalidCredentials);
+        }
+
         // Update session last active
         let _ = self.session_service.touch_session(&claims.sid).await;
 
@@ -452,10 +498,16 @@ impl AuthService {
             let _ = blacklist.blacklist_session(&claims.jti, claims.exp).await;
         }
 
-        // Generate new tokens
+        // Generate new tokens with same session
         let roles = vec![user.role()];
-        let tokens =
-            create_token_pair(user.id, &user.email, &roles).map_err(|_| AuthError::HashError)?;
+        let tokens = crate::feature::auth::utils::jwt::create_token_pair_with_session(
+            user.id,
+            &user.email,
+            &roles,
+            &claims.sid,
+            claims.s_iat,
+        )
+        .map_err(|_| AuthError::HashError)?;
 
         let refresh_cookie = create_refresh_cookie(&tokens.refresh_token, &self.config);
 
@@ -474,11 +526,16 @@ impl AuthService {
         refresh_token: Option<&str>,
         access_token: Option<&str>,
     ) -> Cookie<'static> {
-        // Blacklist tokens if provided
+        // Blacklist tokens if provided and revoke session in DB
         if let (Some(token), Some(blacklist)) = (refresh_token, self.session_blacklist.as_ref())
             && let Ok(claims) = validate_refresh_token(token)
         {
             let _ = blacklist.blacklist_session(&claims.jti, claims.exp).await;
+            // Revoke session in database
+            let _ = self
+                .session_service
+                .revoke_by_session_id(&claims.sid, "user_logout")
+                .await;
         }
 
         if let (Some(token), Some(blacklist)) = (access_token, self.session_blacklist.as_ref())

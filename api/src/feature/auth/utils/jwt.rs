@@ -66,6 +66,26 @@ pub struct TokenPair {
     pub session_iat: i64,
 }
 
+/// Create token pair with existing session (for refresh)
+pub fn create_token_pair_with_session(
+    user_id: Uuid,
+    _email: &str,
+    roles: &[Role],
+    session_id: &str,
+    session_iat: i64,
+) -> Result<TokenPair, JwtError> {
+    let access_token = create_access_token_with_session(user_id, roles, session_id, session_iat)?;
+    let refresh_token = create_refresh_token_with_session(user_id, session_id, session_iat)?;
+
+    Ok(TokenPair {
+        access_token,
+        refresh_token,
+        expires_in: access_expiry_secs(),
+        session_id: session_id.to_string(),
+        session_iat,
+    })
+}
+
 /// Create access token (short-lived)
 ///
 /// # Arguments

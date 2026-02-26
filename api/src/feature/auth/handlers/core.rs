@@ -21,6 +21,7 @@ use crate::{
 /// POST /api/v1/auth/register
 pub async fn register(
     State(state): State<AppState>,
+    headers: axum::http::HeaderMap,
     Json(req): Json<RegisterRequest>,
 ) -> ApiResult<AuthResponse> {
     if let Err(e) = req.validate() {
@@ -30,6 +31,20 @@ pub async fn register(
             .with_message(format!("Validation error: {}", e)));
     }
 
+    // Extract device info from headers
+    let user_agent = headers
+        .get("user-agent")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("Unknown");
+
+    let ip_address = headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .or_else(|| headers.get("x-real-ip").and_then(|v| v.to_str().ok()))
+        .unwrap_or("0.0.0.0");
+
+    let device_info = DeviceInfo::from_user_agent(user_agent, ip_address);
+
     let (response, refresh_cookie) = state
         .auth_service
         .register(
@@ -37,6 +52,7 @@ pub async fn register(
             req.username.as_deref(),
             &req.password,
             req.name.as_deref(),
+            Some(&device_info),
         )
         .await
         .map_err(|e: AuthError| match e {
@@ -148,6 +164,7 @@ pub async fn refresh(State(state): State<AppState>, jar: CookieJar) -> ApiResult
 /// POST /api/v1/auth/logout
 pub async fn logout(
     State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
     jar: CookieJar,
     headers: axum::http::HeaderMap,
 ) -> ApiResult<()> {
@@ -157,6 +174,13 @@ pub async fn logout(
         .get("Authorization")
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.strip_prefix("Bearer "));
+
+    // Revoke current session in database
+    let _ = state
+        .auth_service
+        .session_service()
+        .revoke_by_session_id(&auth_user.session_id, "user_logout")
+        .await;
 
     let clear_cookie = state
         .auth_service

@@ -84,6 +84,7 @@ pub async fn bootstrap(db: &Database, config: &Config) -> eyre::Result<()> {
             Some(&admin_username),
             &admin_password,
             Some(&admin_name),
+            None,
         )
         .await
     {

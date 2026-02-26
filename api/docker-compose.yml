@@ -1,72 +1,10 @@
-name: quax
+name: quax-infra
 
 services:
-  api:
-    profiles: [app]
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: quax-api
-    env_file: .env
-    ports:
-      - "127.0.0.1:${SERVER_PORT:-8080}:${SERVER_PORT:-8080}"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${SERVER_PORT:-8080}/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-    depends_on:
-      postgres:
-        condition: service_healthy
-        required: false
-      redis:
-        condition: service_healthy
-        required: false
-    networks:
-      - quax_net
-
-  redis:
-    profiles: [cache, db]
-    image: redis:7-alpine
-    container_name: quax-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    networks:
-      - quax_net
-
-  migrate:
-    profiles: [migrate]
-    build:
-      context: .
-      dockerfile: Dockerfile.migrate
-    container_name: quax-migrate
-    environment:
-      DATABASE_URL: postgres://quax:secret@quax-postgres:5432/quax_db
-    volumes:
-      - ./migrations:/migrations:ro
-      - ./migrate.sh:/migrate.sh:ro
-    working_dir: /migrations
-    entrypoint: ["/bin/sh", "/migrate.sh"]
-    restart: "no"
-    depends_on:
-      postgres:
-        condition: service_healthy
-        required: false
-    networks:
-      - quax_net
-
+  # ===========================================================================
+  # Database
+  # ===========================================================================
   postgres:
-    profiles: [db]
     image: postgres:16-alpine
     container_name: quax-postgres
     environment:
@@ -85,18 +23,69 @@ services:
     networks:
       - quax_net
 
-  caddy:
-    profiles: [caddy]
-    image: caddy:2-alpine
-    container_name: quax-caddy
+  # ===========================================================================
+  # Cache
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: quax-redis
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "6379:6379"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - quax_net
+
+  # ===========================================================================
+  # Database Admin (pgAdmin)
+  # ===========================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: quax-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@quax.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/misc/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - quax_net
+    restart: unless-stopped
+
+  # ===========================================================================
+  # Database Admin (Adminer - Alternative)
+  # ===========================================================================
+  adminer:
+    image: adminer:latest
+    container_name: quax-adminer
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - quax_net
     restart: unless-stopped
@@ -104,9 +93,9 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  caddy_data:
-  caddy_config:
+  pgadmin_data:
 
 networks:
   quax_net:
     name: quax_net
+    external: true

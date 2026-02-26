@@ -58,13 +58,31 @@ impl SessionService {
             .await
     }
 
-    /// Revoke a specific session
+    /// Revoke a specific session by internal UUID
     pub async fn revoke_session(
         &self,
         session_id: Uuid,
         reason: &str,
     ) -> Result<bool, SessionRepositoryError> {
         self.repo.revoke(self.db.pool(), session_id, reason).await
+    }
+
+    /// Revoke session by session_id string (JWT sid claim)
+    pub async fn revoke_by_session_id(
+        &self,
+        session_id: &str,
+        reason: &str,
+    ) -> Result<bool, SessionRepositoryError> {
+        // Find session by session_id string
+        if let Some(session) = self
+            .repo
+            .find_by_session_id(self.db.pool(), session_id)
+            .await?
+        {
+            self.repo.revoke(self.db.pool(), session.id, reason).await
+        } else {
+            Ok(false) // Session not found
+        }
     }
 
     /// Revoke all sessions except current

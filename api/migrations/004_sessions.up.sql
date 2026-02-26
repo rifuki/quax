@@ -25,8 +25,11 @@ CREATE TABLE user_sessions (
     device_fingerprint  VARCHAR(64),
     -- Browser fingerprint for additional security
     
-    ip_address          INET,
-    -- IP address at time of login
+    ip_address          VARCHAR(45),
+    -- IP address at time of login (IPv4 or IPv6)
+    
+    location            VARCHAR(255),
+    -- Human-readable location (e.g., "Jakarta, Indonesia")
     
     ip_country_code     CHAR(2),
     -- GeoIP country (ISO 3166-1 alpha-2)

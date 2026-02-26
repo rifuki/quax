@@ -45,7 +45,7 @@ impl AdminUserRepository for AdminUserRepositoryImpl {
             SELECT id, email, username, is_active, email_verified, role, created_at, updated_at 
             FROM users 
             ORDER BY created_at DESC
-            "#
+            "#,
         )
         .fetch_all(pool)
         .await?;
@@ -65,7 +65,7 @@ impl AdminUserRepository for AdminUserRepositoryImpl {
             SET role = $1, updated_at = NOW() 
             WHERE id = $2 
             RETURNING id, email, username, is_active, email_verified, role, created_at, updated_at
-            "#
+            "#,
         )
         .bind(role)
         .bind(user_id)

@@ -97,20 +97,20 @@ export function AdminDashboard() {
                   <XAxis dataKey="name" className="text-xs fill-muted-foreground" />
                   <YAxis className="text-xs fill-muted-foreground" />
                   <Tooltip
-                    cursor={{ fill: "hsl(var(--muted))" }}
+                    cursor={{ fill: "var(--color-muted)" }}
                     contentStyle={{
-                      backgroundColor: "hsl(var(--background))",
-                      border: "1px solid hsl(var(--border))",
+                      backgroundColor: "var(--color-background)",
+                      border: "1px solid var(--color-border)",
                       borderRadius: "6px",
-                      color: "hsl(var(--foreground))",
+                      color: "var(--color-foreground)",
                     }}
                     itemStyle={{
-                      color: "hsl(var(--foreground))",
+                      color: "var(--color-foreground)",
                     }}
                   />
                   <Bar
                     dataKey="users"
-                    fill="hsl(var(--primary))"
+                    fill="var(--color-primary)"
                     radius={[4, 4, 0, 0]}
                   />
                 </BarChart>

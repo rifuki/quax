@@ -4,9 +4,14 @@
 # Use this for running the entire local stack (DB, Cache, Backend, Frontend)
 # 
 # Commands:
-#   docker compose up -d postgres redis     # DB + Cache only
-#   docker compose up -d                    # Full stack
-#   docker compose --profile dev up -d      # Include frontend dev server
+#   docker compose up -d postgres redis              # DB + Cache only
+#   docker compose up -d                             # Full stack (API + DB + Cache)
+#   docker compose --profile admin up -d             # Include DB admin tools
+#   docker compose --profile dev up -d               # Include frontend dev server
+#
+# DB Admin Tools (run with --profile admin):
+#   pgAdmin:    http://localhost:5050  (admin@quax.com / admin)
+#   Adminer:    http://localhost:8081  (Lightweight alternative)
 #
 # =============================================================================
 
@@ -34,6 +39,9 @@ services:
       retries: 5
     networks:
       - quax_net
+    profiles:
+      - infra
+      - full
 
   # ===========================================================================
   # Cache (Optional - graceful degradation)
@@ -53,6 +61,9 @@ services:
       retries: 5
     networks:
       - quax_net
+    profiles:
+      - infra
+      - full
 
   # ===========================================================================
   # Backend API
@@ -99,6 +110,70 @@ services:
   #     - quax_net
 
   # ===========================================================================
+  # Database Admin (pgAdmin)
+  # ===========================================================================
+  # Web-based PostgreSQL admin tool (like phpMyAdmin)
+  # Access: http://localhost:5050
+  # Default login: admin@quax.local / admin
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: quax-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@quax.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/misc/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - quax_net
+    restart: unless-stopped
+    profiles:
+      - admin  # Run with: docker compose --profile admin up -d
+
+  # ===========================================================================
+  # Database Admin (Adminer - Alternative)
+  # ===========================================================================
+  # Lightweight alternative to pgAdmin
+  # Access: http://localhost:8081
+  # System: PostgreSQL
+  # Server: postgres
+  # Username: quax
+  # Password: secret
+  # Database: quax_db
+  adminer:
+    image: adminer:latest
+    container_name: quax-adminer
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - quax_net
+    restart: unless-stopped
+    profiles:
+      - infra
+      - admin
+      - full
+
+  # ===========================================================================
   # Reverse Proxy (Caddy)
   # ===========================================================================
   # Uncomment for production with HTTPS
@@ -120,6 +195,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  pgadmin_data:
   caddy_data:
   caddy_config:
 

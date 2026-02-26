@@ -109,7 +109,9 @@ cd ui && bun run dev
 ### Key Features
 
 - **JWT Authentication**: Access token (Bearer) + refresh token (httpOnly cookie)
-- **Token Rotation**: Refresh tokens rotated on each use
+- **Session Management**: Multi-device tracking with device info, IP, and location
+- **Token Rotation**: Refresh tokens rotated on each use with preserved session identity
+- **Session Revocation**: Revoke specific device or logout all devices
 - **Session Blacklisting**: Redis-based token revocation (optional)
 - **API Key Support**: Machine-to-machine authentication
 - **File Uploads**: Local filesystem with static file serving
@@ -121,7 +123,8 @@ cd ui && bun run dev
 ```
 api/src/
 ├── feature/
-│   ├── auth/          # Authentication (login, register, refresh)
+│   ├── auth/          # Authentication (login, register, refresh, sessions)
+│   │   └── session/   # Device session management
 │   ├── user/          # User profile management
 │   ├── admin/         # Admin operations
 │   │   ├── user/      # User management
@@ -181,6 +184,10 @@ POST  /api/v1/auth/register
 POST  /api/v1/auth/login
 POST  /api/v1/auth/refresh
 POST  /api/v1/auth/logout
+GET   /api/v1/auth/me
+GET   /api/v1/auth/sessions          # List active devices
+DELETE /api/v1/auth/sessions/:id     # Revoke specific device
+DELETE /api/v1/auth/sessions         # Logout all other devices
 
 # User
 GET   /api/v1/user/me
@@ -257,6 +264,7 @@ cargo fmt                    # Format code
 - **Admin Dashboard**: User management, API keys, system stats
 - **Settings**: Profile, security, sessions management
 - **File Upload**: Avatar upload with preview
+- **Session Management**: View and manage active devices
 - **Responsive Design**: Mobile-first, dark mode support
 - **Type Safety**: Full TypeScript coverage
 

@@ -120,9 +120,9 @@ impl SessionRepository for SessionRepositoryImpl {
             r#"
             INSERT INTO user_sessions (
                 user_id, session_id, device_name, device_type, 
-                ip_address, user_agent, expires_at
+                ip_address, user_agent, location, expires_at
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            VALUES ($1, $2, $3, $4, $5::inet, $6, NULL, $7)
             RETURNING *
             "#,
         )
@@ -130,7 +130,7 @@ impl SessionRepository for SessionRepositoryImpl {
         .bind(session_id)
         .bind(&device_info.name)
         .bind(&device_info.device_type)
-        .bind(&device_info.ip_address) // Store as string
+        .bind(&device_info.ip_address)
         .bind(&device_info.user_agent)
         .bind(expires_at)
         .fetch_one(pool)
